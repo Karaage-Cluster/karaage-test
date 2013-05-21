@@ -24,7 +24,7 @@ def setup():
     call(["debconf-set-selections", "debconf.conf"])
 
 
-def build_github_package(src, name):
+def build_git_package(src, name):
     old_dir = os.getcwd()
     try:
         call(["git", "clone", src, name])
@@ -40,12 +40,12 @@ def add_sources(tmp_dir, source):
         old_dir = os.getcwd()
         try:
             os.chdir(tmp_dir)
-            build_github_package("git://github.com/VPAC/django-tldap.git", "django-tldap")
-            build_github_package("git://github.com/VPAC/django-placard.git", "django-placard")
-            build_github_package("git://github.com/Karaage-Cluster/karaage.git", "karaage")
-            build_github_package("git://github.com/Karaage-Cluster/karaage-common.git", "karaage-common")
-            build_github_package("git://github.com/Karaage-Cluster/karaage-admin.git", "karaage-admin")
-            build_github_package("git://github.com/Karaage-Cluster/karaage-registration.git", "karaage-registration")
+            build_git_package("git://github.com/VPAC/django-tldap.git", "django-tldap")
+            build_git_package("git://github.com/VPAC/django-placard.git", "django-placard")
+            build_git_package("git://github.com/Karaage-Cluster/karaage.git", "karaage")
+            build_git_package("git://github.com/Karaage-Cluster/karaage-common.git", "karaage-common")
+            build_git_package("git://github.com/Karaage-Cluster/karaage-admin.git", "karaage-admin")
+            build_git_package("git://github.com/Karaage-Cluster/karaage-registration.git", "karaage-registration")
 
             with open('Packages', 'w') as f:
                 call(["dpkg-scanpackages", "."], stdout=f)
