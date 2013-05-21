@@ -127,6 +127,7 @@ def remove_karaage():
 def main():
     parser = argparse.ArgumentParser(description='Test karaage Debian packages.')
     parser.add_argument("-s", "--source", choices=['code', 'vpac'], default="code", help="Where to get packages from")
+    parser.add_argument("-r", "--shell", action="store_true", help="Run shell on error")
     args = parser.parse_args()
 
     setup()
@@ -139,6 +140,14 @@ def main():
         install_slapd()
         install_karaage(allow_unauthenticated)
         remove_karaage()
+
+    except Exception, e:
+        if args.shell:
+            print "Exception occured"
+            print e
+            print "Entering shell, please exit to finish."
+            call(["bash"])
+        raise
 
     finally:
         try:
