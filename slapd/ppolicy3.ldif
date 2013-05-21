@@ -1,0 +1,9 @@
+dn: cn=module,cn=config
+objectClass: olcModuleList
+cn: module
+olcModulepath: /usr/lib/ldap
+olcModuleload: ppolicy.so
+
+dn: olcOverlay=ppolicy,olcDatabase={1}hdb,cn=config
+objectClass: olcPPolicyConfig
+olcPPolicyDefault: cn=default,ou=policies,dc=example,dc=org

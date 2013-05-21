@@ -1,0 +1,152 @@
+#!/usr/bin/python
+import tempfile
+import shutil
+import subprocess
+import os
+import argparse
+
+env = {
+        'PATH': '/usr/sbin:/usr/bin:/sbin:/bin',
+        'DEBCONF_DEBUG': 'developer',
+}
+
+def call(args, **kwargs):
+    print
+    print "---> ", args
+    subprocess.check_call(args, env=env, **kwargs)
+
+
+def setup():
+    call(["apt-get", "update"])
+    call(["apt-get", "upgrade"])
+    # python-support required for pysupport, should be replaced by python2 install method.
+    call(["apt-get", "install", "--yes", "git", "build-essential", "debhelper", "cdbs", "python-support"])
+    call(["debconf-set-selections", "debconf.conf"])
+
+
+def build_github_package(src, name):
+    old_dir = os.getcwd()
+    try:
+        call(["git", "clone", src, name])
+        os.chdir(name)
+        call(["dpkg-checkbuilddeps"])
+        call(["fakeroot", "debian/rules", "binary"])
+    finally:
+        os.chdir(old_dir)
+
+
+def add_sources(tmp_dir, source):
+    if source == "code":
+        old_dir = os.getcwd()
+        try:
+            os.chdir(tmp_dir)
+            build_github_package("git://github.com/VPAC/django-tldap.git", "django-tldap")
+            build_github_package("git://github.com/VPAC/django-placard.git", "django-placard")
+            build_github_package("git://github.com/Karaage-Cluster/karaage.git", "karaage")
+            build_github_package("git://github.com/Karaage-Cluster/karaage-common.git", "karaage-common")
+            build_github_package("git://github.com/Karaage-Cluster/karaage-admin.git", "karaage-admin")
+            build_github_package("git://github.com/Karaage-Cluster/karaage-registration.git", "karaage-registration")
+
+            with open('Packages', 'a') as f:
+                call(["dpkg-scanpackages", "."], stdout=f)
+        finally:
+            os.chdir(old_dir)
+
+        with open('/etc/apt/sources.list', 'a') as f:
+            f.write("deb file://%s ./\n" % (tmp_dir))
+            f.write("deb http://code.vpac.org/debian/ squeeze main\n")
+#            f.write("deb http://code.vpac.org/debian/ wheezy main\n")
+            f.write("deb http://backports.debian.org/debian-backports squeeze-backports main\n")
+
+        with open('/etc/apt/preferences', 'w') as f:
+            f.write("Package: *\n")
+            f.write("Pin: release l=VPAC\n")
+            f.write("Pin-Priority: 150\n")
+            f.write("\n")
+
+        allow_unauthenticated = True
+    elif source == "vpac":
+
+        with open('/etc/apt/sources.list', 'a') as f:
+            f.write("deb http://code.vpac.org/debian/ squeeze main\n")
+#            f.write("deb http://code.vpac.org/debian/ wheezy main\n")
+            f.write("deb http://backports.debian.org/debian-backports squeeze-backports main\n")
+
+        allow_unauthenticated = False
+    else:
+
+        raise RuntimeError("Oops. Unknown source.")
+
+    call(["apt-key", "add", "vpac/vpac-debian-key.gpg"])
+    call(["apt-get", "update"])
+
+    return allow_unauthenticated
+
+
+def install_mysql():
+    call(["apt-get", "install", "--yes", "mysql-server"])
+
+    with open('mysql/setup.sql', 'r') as f:
+        call(["mysql", "--password=mysqlsecret"], stdin=f)
+
+
+def install_slapd():
+    call(["apt-get", "install", "--yes", "slapd", "ldap-utils"])
+
+    with open('slapd/ppolicy.ldif', 'r') as f:
+        call(["ldapadd", "-Y", "EXTERNAL", "-H", "ldapi:///"], stdin=f)
+
+    with open('slapd/ppolicy2.ldif', 'r') as f:
+        call(["ldapadd", "-x", "-H", "ldapi:///", "-D", "cn=admin,dc=example,dc=org", "-w", "slapdsecret"], stdin=f)
+
+    with open('slapd/ppolicy3.ldif', 'r') as f:
+        call(["ldapadd", "-Y", "EXTERNAL", "-H", "ldapi:///"], stdin=f)
+
+
+def install_karaage(allow_unauthenticated):
+    args = []
+    if allow_unauthenticated:
+        args += ["--allow-unauthenticated"]
+
+    call(["apt-get", "install", "--yes", "-t", "squeeze-backports", "python-django", "python-django-south"])
+    call(["apt-get", "install", "--yes", "libjs-jquery-ui", "python-mysqldb"])
+    call(["apt-get", "install", "--yes", "karaage-admin", "karaage-registration"] + args)
+
+    shutil.copyfile("karaage/global_settings.py", "/etc/karaage/global_settings.py")
+
+    call(["kg-manage", "init_ldap"])
+    call(["kg-manage", "syncdb", "--noinput"])
+    call(["kg-manage", "migrate", "--all"])
+
+
+def remove_karaage():
+    call(["apt-get", "remove", "--purge", "--yes", "karaage-admin", "karaage-registration"])
+    call(["apt-get", "autoremove", "--purge", "--yes" ])
+
+
+def main():
+    parser = argparse.ArgumentParser(description='Test karaage Debian packages.')
+    parser.add_argument("-s", "--source", choices=['code', 'vpac'], default="code", help="Where to get packages from")
+    args = parser.parse_args()
+
+    setup()
+    tmp_dir = None
+    try:
+        tmp_dir = tempfile.mkdtemp()
+        allow_unauthenticated = add_sources(tmp_dir, args.source)
+
+        install_mysql()
+        install_slapd()
+        install_karaage(allow_unauthenticated)
+        remove_karaage()
+
+    finally:
+        try:
+            if tmp_dir is not None:
+                shutil.rmtree(tmp_dir) # delete directory
+        except OSError, e:
+            if e.errno != 2: # code 2 - no such file or directory
+                raise
+
+if __name__ == "__main__":
+    main()
