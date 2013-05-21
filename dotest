@@ -47,13 +47,14 @@ def add_sources(tmp_dir, source):
             build_github_package("git://github.com/Karaage-Cluster/karaage-admin.git", "karaage-admin")
             build_github_package("git://github.com/Karaage-Cluster/karaage-registration.git", "karaage-registration")
 
-            with open('Packages', 'a') as f:
+            with open('Packages', 'w') as f:
                 call(["dpkg-scanpackages", "."], stdout=f)
         finally:
             os.chdir(old_dir)
 
-        with open('/etc/apt/sources.list', 'a') as f:
+        with open('/etc/apt/sources.list', 'w') as f:
             f.write("deb file://%s ./\n" % (tmp_dir))
+            f.write("deb http://hq.in.vpac.org:9999/debian squeeze main\n")
             f.write("deb http://code.vpac.org/debian/ squeeze main\n")
 #            f.write("deb http://code.vpac.org/debian/ wheezy main\n")
             f.write("deb http://backports.debian.org/debian-backports squeeze-backports main\n")
@@ -67,7 +68,8 @@ def add_sources(tmp_dir, source):
         allow_unauthenticated = True
     elif source == "vpac":
 
-        with open('/etc/apt/sources.list', 'a') as f:
+        with open('/etc/apt/sources.list', 'w') as f:
+            f.write("deb http://hq.in.vpac.org:9999/debian squeeze main\n")
             f.write("deb http://code.vpac.org/debian/ squeeze main\n")
 #            f.write("deb http://code.vpac.org/debian/ wheezy main\n")
             f.write("deb http://backports.debian.org/debian-backports squeeze-backports main\n")
