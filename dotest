@@ -112,6 +112,7 @@ def install_karaage(allow_unauthenticated):
 
     shutil.copyfile("karaage/global_settings.py", "/etc/karaage/global_settings.py")
 
+    call(["kg_set_secret_key"])
     call(["kg-manage", "init_ldap"])
     call(["kg-manage", "syncdb", "--noinput"])
     call(["kg-manage", "migrate", "--all"])
