@@ -24,10 +24,10 @@ def setup():
     call(["debconf-set-selections", "debconf.conf"])
 
 
-def build_git_package(src, name):
+def build_git_package(src, name, branch="master"):
     old_dir = os.getcwd()
     try:
-        call(["git", "clone", src, name])
+        call(["git", "clone", "--branch", branch, src, name])
         os.chdir(name)
         call(["dpkg-checkbuilddeps"])
         call(["fakeroot", "debian/rules", "binary"])
