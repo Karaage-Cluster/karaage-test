@@ -35,8 +35,36 @@ def build_git_package(src, name, branch="master"):
         os.chdir(old_dir)
 
 
-def add_sources(tmp_dir, source):
-    if source == "code":
+def add_sources(tmp_dir, distribution, source):
+    if source == "local":
+        old_dir = os.getcwd()
+        try:
+            os.chdir(tmp_dir)
+            build_git_package("file:///home/brian/tree/django/django-tldap/django-tldap", "django-tldap")
+            build_git_package("file:///home/brian/tree/django/django-placard/django-placard", "django-placard")
+            build_git_package("file:///home/brian/tree/django/karaage/karaage", "karaage")
+            build_git_package("file:///home/brian/tree/django/karaage/karaage-common", "karaage-common")
+            build_git_package("file:///home/brian/tree/django/karaage/karaage-admin", "karaage-admin")
+            build_git_package("file:///home/brian/tree/django/karaage/karaage-registration", "karaage-registration")
+
+            with open('Packages', 'w') as f:
+                call(["dpkg-scanpackages", "."], stdout=f)
+        finally:
+            os.chdir(old_dir)
+
+        with open('/etc/apt/sources.list', 'w') as f:
+            f.write("deb file://%s ./\n" % (tmp_dir))
+            f.write("deb http://hq.in.vpac.org:9999/debian %s main\n" % distribution)
+            f.write("deb http://code.vpac.org/debian/ %s main\n" % distribution)
+
+        with open('/etc/apt/preferences', 'w') as f:
+            f.write("Package: *\n")
+            f.write("Pin: release l=VPAC\n")
+            f.write("Pin-Priority: 500\n")
+            f.write("\n")
+
+        allow_unauthenticated = True
+    elif source == "github":
         old_dir = os.getcwd()
         try:
             os.chdir(tmp_dir)
@@ -125,8 +153,8 @@ def remove_karaage():
 
 def main():
     parser = argparse.ArgumentParser(description='Test karaage Debian packages.')
-    parser.add_argument("-s", "--source", choices=['code', 'vpac'], default="code", help="Where to get packages from")
     parser.add_argument("-d", "--distribution", choices=['squeeze', 'wheezy'], default="wheezy", help="Which distribution?")
+    parser.add_argument("-s", "--source", choices=['local', 'github', 'vpac'], default="github", help="Where to get packages from")
     parser.add_argument("-r", "--shell", action="store_true", help="Run shell on error")
     args = parser.parse_args()
 
