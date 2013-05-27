@@ -54,25 +54,21 @@ def add_sources(tmp_dir, source):
 
         with open('/etc/apt/sources.list', 'w') as f:
             f.write("deb file://%s ./\n" % (tmp_dir))
-            f.write("deb http://hq.in.vpac.org:9999/debian squeeze main\n")
-            f.write("deb http://code.vpac.org/debian/ squeeze main\n")
-#            f.write("deb http://code.vpac.org/debian/ wheezy main\n")
-            f.write("deb http://backports.debian.org/debian-backports squeeze-backports main\n")
+            f.write("deb http://hq.in.vpac.org:9999/debian %s main\n" % distribution)
+            f.write("deb http://code.vpac.org/debian/ %s main\n" % distribution)
 
         with open('/etc/apt/preferences', 'w') as f:
             f.write("Package: *\n")
             f.write("Pin: release l=VPAC\n")
-            f.write("Pin-Priority: 150\n")
+            f.write("Pin-Priority: 500\n")
             f.write("\n")
 
         allow_unauthenticated = True
     elif source == "vpac":
 
         with open('/etc/apt/sources.list', 'w') as f:
-            f.write("deb http://hq.in.vpac.org:9999/debian squeeze main\n")
-            f.write("deb http://code.vpac.org/debian/ squeeze main\n")
-#            f.write("deb http://code.vpac.org/debian/ wheezy main\n")
-            f.write("deb http://backports.debian.org/debian-backports squeeze-backports main\n")
+            f.write("deb http://hq.in.vpac.org:9999/debian %s main\n" % distribution)
+            f.write("deb http://code.vpac.org/debian/ %s main\n" % distribution)
 
         allow_unauthenticated = False
     else:
@@ -110,8 +106,8 @@ def install_karaage(allow_unauthenticated):
     if allow_unauthenticated:
         args += ["--allow-unauthenticated"]
 
-    call(["apt-get", "install", "--yes", "-t", "squeeze-backports", "python-django", "python-django-south"])
     call(["apt-get", "install", "--yes", "libjs-jquery-ui", "python-mysqldb"])
+    call(["apt-get", "install", "--yes", "karaage"] + args)
     call(["apt-get", "install", "--yes", "karaage-admin", "karaage-registration"] + args)
 
     shutil.copyfile("karaage/global_settings.py", "/etc/karaage/global_settings.py")
@@ -129,6 +125,7 @@ def remove_karaage():
 def main():
     parser = argparse.ArgumentParser(description='Test karaage Debian packages.')
     parser.add_argument("-s", "--source", choices=['code', 'vpac'], default="code", help="Where to get packages from")
+    parser.add_argument("-d", "--distribution", choices=['squeeze', 'wheezy'], default="wheezy", help="Which distribution?")
     parser.add_argument("-r", "--shell", action="store_true", help="Run shell on error")
     args = parser.parse_args()
 
@@ -136,7 +133,7 @@ def main():
     tmp_dir = None
     try:
         tmp_dir = tempfile.mkdtemp()
-        allow_unauthenticated = add_sources(tmp_dir, args.source)
+        allow_unauthenticated = add_sources(tmp_dir, args.distribution, args.source)
 
         install_mysql()
         install_slapd()
