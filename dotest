@@ -18,7 +18,7 @@ def call(args, **kwargs):
 
 def setup():
     call(["apt-get", "update"])
-    call(["apt-get", "upgrade"])
+    call(["apt-get", "upgrade", "--yes"])
     # python-support required for pysupport, should be replaced by python2 install method.
     call(["apt-get", "install", "--yes", "git", "build-essential", "debhelper", "cdbs", "python-support"])
     call(["debconf-set-selections", "debconf.conf"])
