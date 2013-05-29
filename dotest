@@ -1,63 +1,71 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 import tempfile
 import shutil
 import subprocess
 import os
 import argparse
+import schroot
+
 
 env = {
         'PATH': '/usr/sbin:/usr/bin:/sbin:/bin',
         'DEBCONF_DEBUG': 'developer',
 }
 
-def call(args, **kwargs):
-    print
-    print "---> ", args
-    subprocess.check_call(args, env=env, **kwargs)
+
+def call(chroot, cmd, user=None, **kwargs):
+    print("")
+    print("---> %s" % (cmd,))
+    command = ['schroot', '-r', '-c', chroot.session]
+    if user is not None:
+        command += ['-u', user]
+    command = command + ['--'] + cmd
+
+    subprocess.check_call(command, env=env, **kwargs)
 
 
-def setup():
-    call(["apt-get", "update"])
-    call(["apt-get", "upgrade", "--yes"])
+def setup(chroot):
+    call(chroot, ["apt-get", "update"], user='root')
+    call(chroot, ["apt-get", "upgrade", "--yes"], user='root')
     # python-support required for pysupport, should be replaced by python2 install method.
-    call(["apt-get", "install", "--yes", "git", "build-essential", "debhelper", "cdbs", "python-support"])
-    call(["debconf-set-selections", "debconf.conf"])
+    call(chroot, ["apt-get", "install", "--yes", "git", "build-essential", "debhelper", "cdbs", "python-support"], user='root')
+    call(chroot, ["debconf-set-selections", "debconf.conf"], user='root')
 
 
-def build_git_package(src, name, branch="master"):
+def build_git_package(chroot, src, name, branch="master"):
     old_dir = os.getcwd()
     try:
-        call(["git", "clone", "--branch", branch, src, name])
+        call(chroot, ["git", "clone", "--branch", branch, src, name])
         os.chdir(name)
-        call(["dpkg-checkbuilddeps"])
-        call(["fakeroot", "debian/rules", "binary"])
+        call(chroot, ["dpkg-checkbuilddeps"])
+        call(chroot, ["fakeroot", "debian/rules", "binary"])
     finally:
         os.chdir(old_dir)
 
 
-def add_sources(tmp_dir, distribution, source):
+def add_sources(chroot, tmp_dir, distribution, source):
     if source == "local":
         old_dir = os.getcwd()
         try:
             os.chdir(tmp_dir)
-            build_git_package("file:///home/brian/tree/django/django-tldap/django-tldap", "django-tldap")
-            build_git_package("file:///home/brian/tree/django/django-placard/django-placard", "django-placard")
-            build_git_package("file:///home/brian/tree/django/karaage/karaage", "karaage")
-            build_git_package("file:///home/brian/tree/django/karaage/karaage-common", "karaage-common")
-            build_git_package("file:///home/brian/tree/django/karaage/karaage-admin", "karaage-admin")
-            build_git_package("file:///home/brian/tree/django/karaage/karaage-registration", "karaage-registration")
+            build_git_package(chroot, "file:///home/brian/tree/django/django-tldap/django-tldap", "django-tldap")
+            build_git_package(chroot, "file:///home/brian/tree/django/django-placard/django-placard", "django-placard")
+            build_git_package(chroot, "file:///home/brian/tree/django/karaage/karaage", "karaage", "triggers")
+            build_git_package(chroot, "file:///home/brian/tree/django/karaage/karaage-common", "karaage-common")
+            build_git_package(chroot, "file:///home/brian/tree/django/karaage/karaage-admin", "karaage-admin")
+            build_git_package(chroot, "file:///home/brian/tree/django/karaage/karaage-registration", "karaage-registration")
 
             with open('Packages', 'w') as f:
-                call(["dpkg-scanpackages", "."], stdout=f)
+                call(chroot, ["dpkg-scanpackages", "."], stdout=f)
         finally:
             os.chdir(old_dir)
 
-        with open('/etc/apt/sources.list', 'w') as f:
+        with chroot.create_file('/etc/apt/sources.list', user='root') as f:
             f.write("deb file://%s ./\n" % (tmp_dir))
             f.write("deb http://hq.in.vpac.org:9999/debian %s main\n" % distribution)
             f.write("deb http://code.vpac.org/debian/ %s main\n" % distribution)
 
-        with open('/etc/apt/preferences', 'w') as f:
+        with chroot.create_file('/etc/apt/preferences', user='root') as f:
             f.write("Package: *\n")
             f.write("Pin: release l=VPAC\n")
             f.write("Pin-Priority: 500\n")
@@ -68,24 +76,24 @@ def add_sources(tmp_dir, distribution, source):
         old_dir = os.getcwd()
         try:
             os.chdir(tmp_dir)
-            build_git_package("git://github.com/VPAC/django-tldap.git", "django-tldap")
-            build_git_package("git://github.com/VPAC/django-placard.git", "django-placard")
-            build_git_package("git://github.com/Karaage-Cluster/karaage.git", "karaage")
-            build_git_package("git://github.com/Karaage-Cluster/karaage-common.git", "karaage-common")
-            build_git_package("git://github.com/Karaage-Cluster/karaage-admin.git", "karaage-admin")
-            build_git_package("git://github.com/Karaage-Cluster/karaage-registration.git", "karaage-registration")
+            build_git_package(chroot, "git://github.com/VPAC/django-tldap.git", "django-tldap")
+            build_git_package(chroot, "git://github.com/VPAC/django-placard.git", "django-placard")
+            build_git_package(chroot, "git://github.com/Karaage-Cluster/karaage.git", "karaage")
+            build_git_package(chroot, "git://github.com/Karaage-Cluster/karaage-common.git", "karaage-common")
+            build_git_package(chroot, "git://github.com/Karaage-Cluster/karaage-admin.git", "karaage-admin")
+            build_git_package(chroot, "git://github.com/Karaage-Cluster/karaage-registration.git", "karaage-registration")
 
             with open('Packages', 'w') as f:
-                call(["dpkg-scanpackages", "."], stdout=f)
+                call(chroot, ["dpkg-scanpackages", "."], stdout=f)
         finally:
             os.chdir(old_dir)
 
-        with open('/etc/apt/sources.list', 'w') as f:
+        with chroot.create_file('/etc/apt/sources.list', user='root') as f:
             f.write("deb file://%s ./\n" % (tmp_dir))
             f.write("deb http://hq.in.vpac.org:9999/debian %s main\n" % distribution)
             f.write("deb http://code.vpac.org/debian/ %s main\n" % distribution)
 
-        with open('/etc/apt/preferences', 'w') as f:
+        with chroot.create_file('/etc/apt/preferences', user='root') as f:
             f.write("Package: *\n")
             f.write("Pin: release l=VPAC\n")
             f.write("Pin-Priority: 500\n")
@@ -94,61 +102,75 @@ def add_sources(tmp_dir, distribution, source):
         allow_unauthenticated = True
     elif source == "vpac":
 
-        with open('/etc/apt/sources.list', 'w') as f:
+        with chroot.create_file('/etc/apt/sources.list', user='root') as f:
             f.write("deb http://hq.in.vpac.org:9999/debian %s main\n" % distribution)
             f.write("deb http://code.vpac.org/debian/ %s main\n" % distribution)
+
+        with chroot.create_file('/etc/apt/preferences', user='root') as f:
+            pass
 
         allow_unauthenticated = False
     else:
 
         raise RuntimeError("Oops. Unknown source.")
 
-    call(["apt-key", "add", "vpac/vpac-debian-key.gpg"])
-    call(["apt-get", "update"])
+    call(chroot, ["apt-key", "add", "vpac/vpac-debian-key.gpg"], user='root')
+    call(chroot, ["apt-get", "update"], user='root')
 
     return allow_unauthenticated
 
 
-def install_mysql():
-    call(["apt-get", "install", "--yes", "mysql-server"])
+def install_mysql(chroot):
+    call(chroot, ["apt-get", "install", "--yes", "mysql-server"], user='root')
 
     with open('mysql/setup.sql', 'r') as f:
-        call(["mysql", "--password=mysqlsecret"], stdin=f)
+        call(chroot, ["mysql", "--user=root", "--password=mysqlsecret"], stdin=f)
 
 
-def install_slapd():
-    call(["apt-get", "install", "--yes", "slapd", "ldap-utils"])
+def install_slapd(chroot):
+    call(chroot, ["apt-get", "install", "--yes", "slapd", "ldap-utils"], user='root')
 
     with open('slapd/ppolicy.ldif', 'r') as f:
-        call(["ldapadd", "-Y", "EXTERNAL", "-H", "ldapi:///"], stdin=f)
+        call(chroot, ["ldapadd", "-Y", "EXTERNAL", "-H", "ldapi:///"], stdin=f, user='root')
 
     with open('slapd/ppolicy2.ldif', 'r') as f:
-        call(["ldapadd", "-x", "-H", "ldapi:///", "-D", "cn=admin,dc=example,dc=org", "-w", "slapdsecret"], stdin=f)
+        call(chroot, ["ldapadd", "-x", "-H", "ldapi:///", "-D", "cn=admin,dc=example,dc=org", "-w", "slapdsecret"], stdin=f)
 
     with open('slapd/ppolicy3.ldif', 'r') as f:
-        call(["ldapadd", "-Y", "EXTERNAL", "-H", "ldapi:///"], stdin=f)
+        call(chroot, ["ldapadd", "-Y", "EXTERNAL", "-H", "ldapi:///"], stdin=f, user='root')
 
 
-def install_karaage(allow_unauthenticated):
+def install_karaage(chroot, allow_unauthenticated):
     args = []
     if allow_unauthenticated:
         args += ["--allow-unauthenticated"]
 
-    call(["apt-get", "install", "--yes", "libjs-jquery-ui", "python-mysqldb"])
-    call(["apt-get", "install", "--yes", "karaage"] + args)
-    call(["apt-get", "install", "--yes", "karaage-admin", "karaage-registration"] + args)
+    call(chroot, ["apt-get", "install", "--yes", "libjs-jquery-ui", "python-mysqldb"], user='root')
+    call(chroot, ["apt-get", "install", "--yes", "karaage"] + args, user='root')
+    call(chroot, ["apt-get", "install", "--yes", "karaage-admin", "karaage-registration"] + args, user='root')
 
-    shutil.copyfile("karaage/global_settings.py", "/etc/karaage/global_settings.py")
+def config_karaage(chroot, tmp_dir):
+    chroot.copy("karaage/global_settings.py", "/etc/karaage/global_settings.py", user="root")
 
-    call(["kg_set_secret_key"])
-    call(["kg-manage", "init_ldap"])
-    call(["kg-manage", "syncdb", "--noinput"])
-    call(["kg-manage", "migrate", "--all"])
+    call(chroot, ["kg_set_secret_key"], user='root')
+    call(chroot, ["kg-manage", "init_ldap"], user='root')
+    call(chroot, ["kg-manage", "syncdb", "--noinput"], user='root')
+    call(chroot, ["kg-manage", "migrate", "--all"], user='root')
 
 
-def remove_karaage():
-    call(["apt-get", "remove", "--purge", "--yes", "karaage-admin", "karaage-registration"])
-    call(["apt-get", "autoremove", "--purge", "--yes" ])
+def remove_karaage(chroot):
+    call(chroot, ["apt-get", "remove", "--purge", "--yes", "karaage-admin", "karaage-registration"], user='root')
+    call(chroot, ["apt-get", "autoremove", "--purge", "--yes" ], user='root')
+
+
+def test_karaage(chroot, tmp_dir, args):
+    setup(chroot)
+    allow_unauthenticated = add_sources(chroot, tmp_dir, args.distribution, args.source)
+    install_mysql(chroot)
+    install_slapd(chroot)
+    install_karaage(chroot, allow_unauthenticated)
+    config_karaage(chroot, tmp_dir)
+    remove_karaage(chroot)
 
 
 def main():
@@ -158,24 +180,21 @@ def main():
     parser.add_argument("-r", "--shell", action="store_true", help="Run shell on error")
     args = parser.parse_args()
 
-    setup()
     tmp_dir = None
     try:
         tmp_dir = tempfile.mkdtemp()
-        allow_unauthenticated = add_sources(tmp_dir, args.distribution, args.source)
 
-        install_mysql()
-        install_slapd()
-        install_karaage(allow_unauthenticated)
-        remove_karaage()
-
-    except Exception, e:
-        if args.shell:
-            print "Exception occured"
-            print e
-            print "Entering shell, please exit to finish."
-            call(["bash"])
-        raise
+        with schroot.schroot(args.distribution) as chroot:
+            try:
+                test_karaage(chroot, tmp_dir, args)
+            except Exception, e:
+                if args.shell:
+                    print("")
+                    print("Exception occured. tmp_dir=%s" % tmp_dir)
+                    print(e)
+                    print("Entering shell, please exit to finish.")
+                    call(chroot, ["bash"], user='root')
+                raise
 
     finally:
         try:
