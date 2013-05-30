@@ -16,12 +16,7 @@ env = {
 def call(chroot, cmd, user=None, **kwargs):
     print("")
     print("---> %s" % (cmd,))
-    command = ['schroot', '-r', '-c', chroot.session]
-    if user is not None:
-        command += ['-u', user]
-    command = command + ['--'] + cmd
-
-    subprocess.check_call(command, env=env, **kwargs)
+    chroot.check_call(cmd, user=user, env=env, **kwargs)
 
 
 def setup(chroot):
