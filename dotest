@@ -4,6 +4,7 @@ import shutil
 import os
 import argparse
 import schroot
+import logging
 
 
 env = {
@@ -176,6 +177,8 @@ def main():
     parser.add_argument("-s", "--source", choices=['local', 'github', 'vpac'], default="github", help="Where to get packages from")
     parser.add_argument("-r", "--shell", action="store_true", help="Run shell on error")
     args = parser.parse_args()
+
+    logging.basicConfig(level=logging.DEBUG)
 
     tmp_dir = None
     try:
