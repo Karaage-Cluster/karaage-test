@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 import tempfile
 import shutil
-import subprocess
 import os
 import argparse
 import schroot
