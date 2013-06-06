@@ -151,7 +151,10 @@ def config_karaage(chroot, tmp_dir):
     call(chroot, ["kg-manage", "init_ldap"], user='root')
     call(chroot, ["kg-manage", "syncdb", "--noinput"], user='root')
     call(chroot, ["kg-manage", "migrate", "--all"], user='root')
-
+    call(chroot, ["kg-manage", "kgcreatesuperuser",
+        "--username=kgadmin", "--email=kgadmin@example.org", "--password=1234",
+        "--first_name=karaage", "--last_name=admin", "--institute=test"],
+        user='root')
 
 def remove_karaage(chroot):
     call(chroot, ["apt-get", "remove", "--purge", "--yes", "karaage-admin", "karaage-registration"], user='root')
