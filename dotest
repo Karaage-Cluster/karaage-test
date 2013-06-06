@@ -45,7 +45,7 @@ def add_sources(chroot, tmp_dir, distribution, source):
             os.chdir(tmp_dir)
             build_git_package(chroot, "file:///home/brian/tree/django/django-tldap/django-tldap", "django-tldap")
             build_git_package(chroot, "file:///home/brian/tree/django/django-placard/django-placard", "django-placard")
-            build_git_package(chroot, "file:///home/brian/tree/django/karaage/karaage", "karaage", "triggers")
+            build_git_package(chroot, "file:///home/brian/tree/django/karaage/karaage", "karaage")
             build_git_package(chroot, "file:///home/brian/tree/django/karaage/karaage-common", "karaage-common")
             build_git_package(chroot, "file:///home/brian/tree/django/karaage/karaage-admin", "karaage-admin")
             build_git_package(chroot, "file:///home/brian/tree/django/karaage/karaage-registration", "karaage-registration")
