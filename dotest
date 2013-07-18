@@ -168,6 +168,11 @@ def test_karaage(chroot, tmp_dir, args):
     install_slapd(chroot)
     install_karaage(chroot, allow_unauthenticated)
     config_karaage(chroot, tmp_dir)
+    if args.shell:
+        print("")
+        print("Configured. tmp_dir=%s" % tmp_dir)
+        print("Entering shell, please exit to finish.")
+        call(chroot, ["bash"], user='root')
     remove_karaage(chroot)
 
 
@@ -175,7 +180,8 @@ def main():
     parser = argparse.ArgumentParser(description='Test karaage Debian packages.')
     parser.add_argument("-d", "--distribution", choices=['squeeze', 'wheezy'], default="wheezy", help="Which distribution?")
     parser.add_argument("-s", "--source", choices=['local', 'github', 'vpac'], default="github", help="Where to get packages from")
-    parser.add_argument("-r", "--shell", action="store_true", help="Run shell on error")
+    parser.add_argument("-r", "--shell", action="store_true", help="Run shell on configured")
+    parser.add_argument("-e", "--error", action="store_true", help="Run shell on error")
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.DEBUG)
@@ -188,7 +194,7 @@ def main():
             try:
                 test_karaage(chroot, tmp_dir, args)
             except Exception, e:
-                if args.shell:
+                if args.error:
                     print("")
                     print("Exception occured. tmp_dir=%s" % tmp_dir)
                     print(e)
