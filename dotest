@@ -20,10 +20,11 @@ def call(chroot, cmd, user=None, **kwargs):
 
 
 def setup(chroot):
-    call(chroot, ["apt-get", "update"], user='root')
-    call(chroot, ["apt-get", "upgrade", "--yes"], user='root')
+    call(chroot, ["apt-get", "install", "--yes", "eatmydata"], user='root')
+    call(chroot, ["eatmydata", "apt-get", "update"], user='root')
+    call(chroot, ["eatmydata", "apt-get", "upgrade", "--yes"], user='root')
     # python-support required for pysupport, should be replaced by python2 install method.
-    call(chroot, ["apt-get", "install", "--yes", "git", "build-essential", "debhelper", "cdbs", "python-support"], user='root')
+    call(chroot, ["eatmydata", "apt-get", "install", "--yes", "git", "build-essential", "debhelper", "cdbs", "python-support"], user='root')
     call(chroot, ["debconf-set-selections", "debconf.conf"], user='root')
 
 
@@ -110,20 +111,20 @@ def add_sources(chroot, tmp_dir, distribution, source):
         raise RuntimeError("Oops. Unknown source.")
 
     call(chroot, ["apt-key", "add", "vpac/vpac-debian-key.gpg"], user='root')
-    call(chroot, ["apt-get", "update"], user='root')
+    call(chroot, ["eatmydata", "apt-get", "update"], user='root')
 
     return allow_unauthenticated
 
 
 def install_mysql(chroot):
-    call(chroot, ["apt-get", "install", "--yes", "mysql-server"], user='root')
+    call(chroot, ["eatmydata", "apt-get", "install", "--yes", "mysql-server"], user='root')
 
     with open('mysql/setup.sql', 'r') as f:
         call(chroot, ["mysql", "--user=root", "--password=mysqlsecret"], stdin=f)
 
 
-def install_slapd(chroot):
-    call(chroot, ["apt-get", "install", "--yes", "slapd", "ldap-utils"], user='root')
+def install_slapd(chroot, ldif_file):
+    call(chroot, ["eatmydata", "apt-get", "install", "--yes", "slapd", "ldap-utils"], user='root')
 
     with open('slapd/ppolicy.ldif', 'r') as f:
         call(chroot, ["ldapadd", "-Y", "EXTERNAL", "-H", "ldapi:///"], stdin=f, user='root')
@@ -140,9 +141,10 @@ def install_karaage(chroot, allow_unauthenticated):
     if allow_unauthenticated:
         args += ["--allow-unauthenticated"]
 
-    call(chroot, ["apt-get", "install", "--yes", "libjs-jquery-ui", "python-mysqldb"], user='root')
-    call(chroot, ["apt-get", "install", "--yes", "karaage"] + args, user='root')
-    call(chroot, ["apt-get", "install", "--yes", "karaage-admin", "karaage-registration"] + args, user='root')
+    call(chroot, ["eatmydata", "apt-get", "install", "--yes", "libjs-jquery-ui", "python-mysqldb"], user='root')
+    call(chroot, ["eatmydata", "apt-get", "install", "--yes", "apache2.2", "libapache2-mod-wsgi" ], user='root')
+    call(chroot, ["eatmydata", "apt-get", "install", "--yes", "karaage"] + args, user='root')
+    call(chroot, ["eatmydata", "apt-get", "install", "--yes", "karaage-admin", "karaage-registration"] + args, user='root')
 
 def config_karaage(chroot, tmp_dir):
     chroot.copy("karaage/global_settings.py", "/etc/karaage/global_settings.py", user="root")
@@ -157,8 +159,8 @@ def config_karaage(chroot, tmp_dir):
         user='root')
 
 def remove_karaage(chroot):
-    call(chroot, ["apt-get", "remove", "--purge", "--yes", "karaage-admin", "karaage-registration"], user='root')
-    call(chroot, ["apt-get", "autoremove", "--purge", "--yes" ], user='root')
+    call(chroot, ["eatmydata", "apt-get", "remove", "--purge", "--yes", "karaage-admin", "karaage-registration"], user='root')
+    call(chroot, ["eatmydata", "apt-get", "autoremove", "--purge", "--yes" ], user='root')
 
 
 def test_karaage(chroot, tmp_dir, args):
