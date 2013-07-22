@@ -89,4 +89,4 @@ LOCAL_PBS_SERVERS = [
     'cluster2.example.com',
 ]
 
-
+ALLOWED_HOSTS = ['localhost']
