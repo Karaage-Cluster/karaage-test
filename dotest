@@ -116,25 +116,72 @@ def add_sources(chroot, tmp_dir, distribution, source):
     return allow_unauthenticated
 
 
-def install_mysql(chroot):
+def install_mysql(chroot, sql_file):
     call(chroot, ["eatmydata", "apt-get", "install", "--yes", "mysql-server"], user='root')
 
     with open('mysql/setup.sql', 'r') as f:
         call(chroot, ["mysql", "--user=root", "--password=mysqlsecret"], stdin=f)
 
+    if sql_file is not None:
+        with open(sql_file, 'r') as f:
+            call(chroot, ["mysql", "--user=root", "--password=mysqlsecret"], stdin=f)
 
 def install_slapd(chroot, ldif_file):
     call(chroot, ["eatmydata", "apt-get", "install", "--yes", "slapd", "ldap-utils"], user='root')
 
+    # load ppolicy schema
     with open('slapd/ppolicy.ldif', 'r') as f:
         call(chroot, ["ldapadd", "-Y", "EXTERNAL", "-H", "ldapi:///"], stdin=f, user='root')
 
-    with open('slapd/ppolicy2.ldif', 'r') as f:
-        call(chroot, ["ldapadd", "-x", "-H", "ldapi:///", "-D", "cn=admin,dc=example,dc=org", "-w", "slapdsecret"], stdin=f)
-
-    with open('slapd/ppolicy3.ldif', 'r') as f:
+    # load ppolicy module
+    with open('slapd/ppolicy1.ldif', 'r') as f:
         call(chroot, ["ldapadd", "-Y", "EXTERNAL", "-H", "ldapi:///"], stdin=f, user='root')
 
+    if ldif_file is None:
+
+        # load default ppolicy policy
+        with open('slapd/ppolicy2.ldif', 'r') as f:
+            call(chroot, ["ldapadd", "-x", "-H", "ldapi:///", "-D", "cn=admin,dc=example,dc=org", "-w", "slapdsecret"], stdin=f)
+
+        # configure default ppolicy policy
+        with open('slapd/ppolicy3.ldif', 'r') as f:
+            call(chroot, ["ldapadd", "-Y", "EXTERNAL", "-H", "ldapi:///"], stdin=f, user='root')
+
+    else:
+
+        # reconfigure base DN
+        with open(ldif_file + '-config.ldif', 'r') as f:
+            call(chroot, ["ldapmodify", "-Y", "EXTERNAL", "-H", "ldapi:///"], stdin=f, user='root')
+
+        # kill existing data
+        call(chroot, ["service", "slapd", "stop"], user='root')
+        call(chroot, ["rm", "-rf", "/var/lib/ldap/"], user='root')
+        call(chroot, ["mkdir", "/var/lib/ldap/"], user='root')
+        with open('/dev/null', 'r') as f:
+            call(chroot, ["slapadd"], stdin=f, user='root')
+        call(chroot, ["slapindex"], user='root')
+        call(chroot, ["chown", "openldap:openldap", "-R", "/var/lib/ldap/"], user='root')
+        call(chroot, ["service", "slapd", "start"], user='root')
+
+        # load default ppolicy policy
+        call(chroot, ["service", "slapd", "stop"], user='root')
+        with open(ldif_file + '-ppolicy2.ldif', 'r') as f:
+            call(chroot, ["slapadd"], stdin=f, user='root')
+        call(chroot, ["slapindex"], user='root')
+        call(chroot, ["chown", "openldap:openldap", "-R", "/var/lib/ldap/"], user='root')
+        call(chroot, ["service", "slapd", "start"], user='root')
+
+        # configure default ppolicy policy
+        with open(ldif_file + '-ppolicy3.ldif', 'r') as f:
+            call(chroot, ["ldapadd", "-Y", "EXTERNAL", "-H", "ldapi:///"], stdin=f, user='root')
+
+        # load VPAC data
+        call(chroot, ["service", "slapd", "stop"], user='root')
+        with open(ldif_file + '.ldif', 'r') as f:
+            call(chroot, ["slapadd"], stdin=f, user='root')
+        call(chroot, ["slapindex"], user='root')
+        call(chroot, ["chown", "openldap:openldap", "-R", "/var/lib/ldap/"], user='root')
+        call(chroot, ["service", "slapd", "start"], user='root')
 
 def install_karaage(chroot, allow_unauthenticated):
     args = []
@@ -146,11 +193,11 @@ def install_karaage(chroot, allow_unauthenticated):
     call(chroot, ["eatmydata", "apt-get", "install", "--yes", "karaage"] + args, user='root')
     call(chroot, ["eatmydata", "apt-get", "install", "--yes", "karaage-admin", "karaage-registration"] + args, user='root')
 
-def config_karaage(chroot, tmp_dir):
-    chroot.copy("karaage/global_settings.py", "/etc/karaage/global_settings.py", user="root")
-
+def config_karaage(chroot, karaage_file):
+    if karaage_file is None:
+        karaage_file = "karaage/global_settings.py"
+    chroot.copy(karaage_file, "/etc/karaage/global_settings.py", user="root")
     call(chroot, ["kg_set_secret_key"], user='root')
-    call(chroot, ["kg-manage", "init_ldap"], user='root')
     call(chroot, ["chmod", "a+r", "/etc/karaage/global_settings.py"], user='root')
 
     call(chroot, ["kg-manage", "syncdb", "--noinput"], user='root')
@@ -172,10 +219,10 @@ def remove_karaage(chroot):
 def test_karaage(chroot, tmp_dir, args):
     setup(chroot)
     allow_unauthenticated = add_sources(chroot, tmp_dir, args.distribution, args.source)
-    install_mysql(chroot)
-    install_slapd(chroot)
+    install_mysql(chroot, args.sql)
+    install_slapd(chroot, args.ldif)
     install_karaage(chroot, allow_unauthenticated)
-    config_karaage(chroot, tmp_dir)
+    config_karaage(chroot, args.karaage)
     if args.shell:
         print("")
         print("Configured. tmp_dir=%s" % tmp_dir)
@@ -190,6 +237,9 @@ def main():
     parser.add_argument("-s", "--source", choices=['local', 'github', 'vpac'], default="github", help="Where to get packages from")
     parser.add_argument("-r", "--shell", action="store_true", help="Run shell on configured")
     parser.add_argument("-e", "--error", action="store_true", help="Run shell on error")
+    parser.add_argument("-m", "--sql", help="Initialise mysql with this sql file")
+    parser.add_argument("-l", "--ldif", help="Initialise openldap with this file")
+    parser.add_argument("-k", "--karaage", help="Karaage config file to use")
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.DEBUG)
