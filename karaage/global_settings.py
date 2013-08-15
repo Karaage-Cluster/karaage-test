@@ -85,8 +85,6 @@ LDAP_ADMIN_PASSWORD = 'slapdsecret'
 
 
 LOCAL_PBS_SERVERS = [
-    'cluster1.example.com',
-    'cluster2.example.com',
 ]
 
 ALLOWED_HOSTS = ['localhost']
