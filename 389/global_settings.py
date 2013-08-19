@@ -71,13 +71,18 @@ LOCKED_SHELL = '/usr/local/sbin/insecure'
 ###
 
 
-LDAP_URL = 'ldap://localhost'
-LDAP_BASE = 'dc=example, dc=org'
-LDAP_USER_BASE='ou=People, %s' % LDAP_BASE
-LDAP_GROUP_BASE='ou=Groups, %s' % LDAP_BASE
-LDAP_USE_TLS = False
-LDAP_ADMIN_USER = 'cn=Directory Manager'
-LDAP_ADMIN_PASSWORD = 'slapdsecret'
+LDAP = {
+    'default': {
+        'ENGINE': 'tldap.backend.fake_transactions',
+        'URI': 'ldap://localhost',
+        'USER': 'cn=Directory Manager',
+        'PASSWORD': 'slapdsecret',
+        'USE_TLS': False,
+        'TLS_CA' : None,
+        'LDAP_ACCOUNT_BASE': 'ou=People,dc=example, dc=org',
+        'LDAP_GROUP_BASE': 'ou=Groups,dc=example, dc=org',
+    }
+}
 
 ###
 ### Django PBS settings
