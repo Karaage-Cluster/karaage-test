@@ -201,17 +201,23 @@ def install_karaage(chroot, allow_unauthenticated):
         args += ["--allow-unauthenticated"]
 
     call(chroot, ["eatmydata", "apt-get", "install", "--yes", "libjs-jquery-ui", "python-mysqldb"], user='root')
-    call(chroot, ["eatmydata", "apt-get", "install", "--yes", "apache2.2", "libapache2-mod-wsgi" ], user='root')
+    call(chroot, ["eatmydata", "apt-get", "install", "--yes", "apache2", "libapache2-mod-wsgi" ], user='root')
     call(chroot, ["eatmydata", "apt-get", "install", "--yes", "karaage"] + args, user='root')
     call(chroot, ["eatmydata", "apt-get", "install", "--yes", "karaage-admin", "karaage-registration"] + args, user='root')
 
-def config_karaage(chroot, karaage_file):
+def config_karaage(chroot, karaage_file, distribution):
     chroot.copy(karaage_file, "/etc/karaage/global_settings.py", user="root")
     call(chroot, ["kg_set_secret_key"], user='root')
     call(chroot, ["chmod", "a+r", "/etc/karaage/global_settings.py"], user='root')
-    call(chroot, ["ln", "-s", "/etc/karaage/kgadmin-apache.conf", "/etc/apache2/conf.d/"], user='root')
-    call(chroot, ["ln", "-s", "/etc/karaage/kgreg-apache.conf", "/etc/apache2/conf.d/"], user='root')
-    call(chroot, ["service", "apache2", "restart"], user='root')
+    if distribution == 'sid':
+        call(chroot, ["ln", "-s", "/etc/karaage/kgadmin-apache.conf", "/etc/apache2/conf-available/"], user='root')
+        call(chroot, ["ln", "-s", "/etc/karaage/kgreg-apache.conf", "/etc/apache2/conf-available/"], user='root')
+        call(chroot, ["a2enconf", "kgadmin-apache"], user='root')
+        call(chroot, ["a2enconf", "kgreg-apache"], user='root')
+    else:
+        call(chroot, ["ln", "-s", "/etc/karaage/kgadmin-apache.conf", "/etc/apache2/conf.d/"], user='root')
+        call(chroot, ["ln", "-s", "/etc/karaage/kgreg-apache.conf", "/etc/apache2/conf.d/"], user='root')
+    call(chroot, ["service", "apache2", "reload"], user='root')
 
     call(chroot, ["kg-manage", "syncdb", "--noinput"], user='root')
     call(chroot, ["kg-manage", "migrate", "--all", "--traceback"], user='root')
@@ -238,7 +244,7 @@ def test_karaage(chroot, tmp_dir, args):
     else:
         raise RuntimeError("Unknown ldap server '%s'" % args.ldap)
     install_karaage(chroot, allow_unauthenticated)
-    config_karaage(chroot, karaage_file)
+    config_karaage(chroot, karaage_file, args.distribution)
     if args.shell:
         print("")
         print("Configured. tmp_dir=%s" % tmp_dir)
