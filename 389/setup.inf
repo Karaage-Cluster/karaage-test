@@ -1,0 +1,12 @@
+[General] 
+SuiteSpotUserID=dirsrv
+SuiteSpotGroup=dirsrv
+
+[slapd] 
+ServerPort=389
+Suffix=dc=example,dc=org
+RootDN=cn=Directory Manager
+RootDNPwd=slapdsecret
+SlapdConfigForMC=Yes
+UseExistingMC=0
+AddSampleEntries=No
