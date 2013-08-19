@@ -130,21 +130,21 @@ def install_slapd(chroot, ldif_file):
     call(chroot, ["eatmydata", "apt-get", "install", "--yes", "slapd", "ldap-utils"], user='root')
 
     # load ppolicy schema
-    with open('slapd/ppolicy.ldif', 'r') as f:
+    with open('openldap/ppolicy.ldif', 'r') as f:
         call(chroot, ["ldapadd", "-Y", "EXTERNAL", "-H", "ldapi:///"], stdin=f, user='root')
 
     # load ppolicy module
-    with open('slapd/ppolicy1.ldif', 'r') as f:
+    with open('openldap/ppolicy1.ldif', 'r') as f:
         call(chroot, ["ldapadd", "-Y", "EXTERNAL", "-H", "ldapi:///"], stdin=f, user='root')
 
     if ldif_file is None:
 
         # load default ppolicy policy
-        with open('slapd/ppolicy2.ldif', 'r') as f:
+        with open('openldap/ppolicy2.ldif', 'r') as f:
             call(chroot, ["ldapadd", "-x", "-H", "ldapi:///", "-D", "cn=admin,dc=example,dc=org", "-w", "slapdsecret"], stdin=f)
 
         # configure default ppolicy policy
-        with open('slapd/ppolicy3.ldif', 'r') as f:
+        with open('openldap/ppolicy3.ldif', 'r') as f:
             call(chroot, ["ldapadd", "-Y", "EXTERNAL", "-H", "ldapi:///"], stdin=f, user='root')
 
     else:
