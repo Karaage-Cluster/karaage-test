@@ -126,7 +126,7 @@ def install_mysql(chroot, sql_file):
         with open(sql_file, 'r') as f:
             call(chroot, ["mysql", "--user=root", "--password=mysqlsecret"], stdin=f)
 
-def install_slapd(chroot, ldif_file):
+def install_openldap(chroot, ldif_file):
     call(chroot, ["eatmydata", "apt-get", "install", "--yes", "slapd", "ldap-utils"], user='root')
 
     # load ppolicy schema
@@ -220,7 +220,7 @@ def test_karaage(chroot, tmp_dir, args):
     setup(chroot)
     allow_unauthenticated = add_sources(chroot, tmp_dir, args.distribution, args.source)
     install_mysql(chroot, args.sql)
-    install_slapd(chroot, args.ldif)
+    install_openldap(chroot, args.ldif)
     install_karaage(chroot, allow_unauthenticated)
     config_karaage(chroot, args.karaage)
     if args.shell:
