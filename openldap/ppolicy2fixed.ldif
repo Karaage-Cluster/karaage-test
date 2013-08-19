@@ -1,0 +1,5 @@
+dn: cn=default,ou=policies,dc=example,dc=org
+objectClass: top
+objectClass: device
+objectClass: pwdPolicy
+pwdAttribute: 2.5.4.35

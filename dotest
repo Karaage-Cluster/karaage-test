@@ -59,6 +59,8 @@ def add_sources(chroot, tmp_dir, distribution, source):
         with chroot.create_file('/etc/apt/sources.list', user='root') as f:
             f.write("deb file://%s ./\n" % (tmp_dir))
             f.write("deb http://hq.in.vpac.org:9999/debian %s main\n" % distribution)
+            if distribution == "sid":
+                distribution = "wheezy"
             f.write("deb http://code.vpac.org/debian/ %s main\n" % distribution)
 
         with chroot.create_file('/etc/apt/preferences', user='root') as f:
@@ -87,6 +89,8 @@ def add_sources(chroot, tmp_dir, distribution, source):
         with chroot.create_file('/etc/apt/sources.list', user='root') as f:
             f.write("deb file://%s ./\n" % (tmp_dir))
             f.write("deb http://hq.in.vpac.org:9999/debian %s main\n" % distribution)
+            if distribution == "sid":
+                distribution = "wheezy"
             f.write("deb http://code.vpac.org/debian/ %s main\n" % distribution)
 
         with chroot.create_file('/etc/apt/preferences', user='root') as f:
@@ -100,6 +104,8 @@ def add_sources(chroot, tmp_dir, distribution, source):
 
         with chroot.create_file('/etc/apt/sources.list', user='root') as f:
             f.write("deb http://hq.in.vpac.org:9999/debian %s main\n" % distribution)
+            if distribution == "sid":
+                distribution = "wheezy"
             f.write("deb http://code.vpac.org/debian/ %s main\n" % distribution)
 
         with chroot.create_file('/etc/apt/preferences', user='root') as f:
@@ -183,6 +189,12 @@ def install_openldap(chroot, ldif_file):
         call(chroot, ["chown", "openldap:openldap", "-R", "/var/lib/ldap/"], user='root')
         call(chroot, ["service", "slapd", "start"], user='root')
 
+def install_389(chroot, ldif_file):
+    call(chroot, ["eatmydata", "apt-get", "install", "--yes", "389-ds-base", "ldap-utils"], user='root')
+    call(chroot, ["setup-ds", "-s", "-f", "389/setup.inf"], user='root')
+#    with open('389/app.ldif', 'r') as f:
+#        call(chroot, ["ldapmodify", "-D", "cn=Directory Manager", "-w", "slapsecret"], stdin=f, user='root')
+
 def install_karaage(chroot, allow_unauthenticated):
     args = []
     if allow_unauthenticated:
@@ -194,14 +206,12 @@ def install_karaage(chroot, allow_unauthenticated):
     call(chroot, ["eatmydata", "apt-get", "install", "--yes", "karaage-admin", "karaage-registration"] + args, user='root')
 
 def config_karaage(chroot, karaage_file):
-    if karaage_file is None:
-        karaage_file = "karaage/global_settings.py"
     chroot.copy(karaage_file, "/etc/karaage/global_settings.py", user="root")
     call(chroot, ["kg_set_secret_key"], user='root')
     call(chroot, ["chmod", "a+r", "/etc/karaage/global_settings.py"], user='root')
 
     call(chroot, ["kg-manage", "syncdb", "--noinput"], user='root')
-    call(chroot, ["kg-manage", "migrate", "--all"], user='root')
+    call(chroot, ["kg-manage", "migrate", "--all", "--traceback"], user='root')
     call(chroot, ["kg-manage", "kgcreatesuperuser",
         "--username=kgadmin", "--email=kgadmin@example.org", "--password=1234",
         "--first_name=karaage", "--last_name=admin", "--institute=test"],
@@ -220,9 +230,16 @@ def test_karaage(chroot, tmp_dir, args):
     setup(chroot)
     allow_unauthenticated = add_sources(chroot, tmp_dir, args.distribution, args.source)
     install_mysql(chroot, args.sql)
-    install_openldap(chroot, args.ldif)
+    if args.ldap == 'openldap':
+        install_openldap(chroot, args.ldif)
+        karaage_file = args.karaage or "openldap/global_settings.py"
+    elif args.ldap == '389':
+        install_389(chroot, args.ldif)
+        karaage_file = args.karaage or "389/global_settings.py"
+    else:
+        raise RuntimeError("Unknown ldap server '%s'" % args.ldap)
     install_karaage(chroot, allow_unauthenticated)
-    config_karaage(chroot, args.karaage)
+    config_karaage(chroot, karaage_file)
     if args.shell:
         print("")
         print("Configured. tmp_dir=%s" % tmp_dir)
@@ -233,12 +250,13 @@ def test_karaage(chroot, tmp_dir, args):
 
 def main():
     parser = argparse.ArgumentParser(description='Test karaage Debian packages.')
-    parser.add_argument("-d", "--distribution", choices=['squeeze', 'wheezy'], default="wheezy", help="Which distribution?")
+    parser.add_argument("-d", "--distribution", choices=['squeeze', 'wheezy', 'sid'], default="wheezy", help="Which distribution?")
+    parser.add_argument("-l", "--ldap", choices=['openldap', '389'], default="openldap", help="Which LDAP server?")
     parser.add_argument("-s", "--source", choices=['local', 'github', 'vpac'], default="github", help="Where to get packages from")
     parser.add_argument("-r", "--shell", action="store_true", help="Run shell on configured")
     parser.add_argument("-e", "--error", action="store_true", help="Run shell on error")
-    parser.add_argument("-m", "--sql", help="Initialise mysql with this sql file")
-    parser.add_argument("-l", "--ldif", help="Initialise openldap with this file")
+    parser.add_argument("-S", "--sql", help="Initialise mysql with this sql file")
+    parser.add_argument("-L", "--ldif", help="Initialise openldap with this file")
     parser.add_argument("-k", "--karaage", help="Karaage config file to use")
     args = parser.parse_args()
 

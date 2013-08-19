@@ -1,0 +1,5 @@
+dn: cn=default,ou=policies,dc=example,dc=org
+changetype: modify
+replace: pwdAttribute
+pwdAttribute: userPassword
+-
