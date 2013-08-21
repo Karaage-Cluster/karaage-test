@@ -208,9 +208,11 @@ def config_karaage(chroot, karaage_file, distribution):
         chroot.check_call(["ln", "-s", "/etc/karaage/kgreg-apache.conf", "/etc/apache2/conf-available/"], user='root')
         chroot.check_call(["a2enconf", "kgadmin-apache"], user='root')
         chroot.check_call(["a2enconf", "kgreg-apache"], user='root')
-    else:
+    elif distribution == "squeeze" or distribution == "wheezy":
         chroot.check_call(["ln", "-s", "/etc/karaage/kgadmin-apache.conf", "/etc/apache2/conf.d/"], user='root')
         chroot.check_call(["ln", "-s", "/etc/karaage/kgreg-apache.conf", "/etc/apache2/conf.d/"], user='root')
+    else:
+        raise RuntimeError("Unknown distribution")
     chroot.check_call(["service", "apache2", "reload"], user='root')
 
     chroot.check_call(["kg-manage", "syncdb", "--noinput"], user='root')
