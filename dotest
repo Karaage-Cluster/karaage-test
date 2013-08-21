@@ -137,6 +137,14 @@ def install_mysql(chroot, sql_file, distribution):
         with open(sql_file, 'r') as f:
             chroot.check_call(["mysql", "--user=root", "--password=mysqlsecret"], stdin=f)
 
+    tables = chroot.check_output(["mysql", "-B", "-N", "-e", "SHOW TABLES", "-pmysqlsecret", "karaage"], user='root')
+    for table in tables.split("\n"):
+        if table == "":
+            continue
+        sql = "ALTER TABLE %s CONVERT TO CHARACTER SET utf8 COLLATE utf8_general_ci" % table
+        chroot.check_call(["mysql", "-B", "-e", sql, "-pmysqlsecret", "karaage"], user='root')
+
+
 def install_openldap(chroot, ldif_file):
     chroot.check_call(["eatmydata", "apt-get", "install", "--yes", "slapd", "ldap-utils"], user='root')
 
