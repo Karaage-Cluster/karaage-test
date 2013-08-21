@@ -116,8 +116,19 @@ def add_sources(chroot, tmp_dir, distribution, source):
     return allow_unauthenticated
 
 
-def install_mysql(chroot, sql_file):
+def install_mysql(chroot, sql_file, distribution):
     chroot.check_call(["eatmydata", "apt-get", "install", "--yes", "mysql-server"], user='root')
+
+    with chroot.create_file('/etc/mysql/conf.d/karaage.cnf', user='root') as f:
+        if distribution == 'squeeze':
+            f.write("[mysqld]\n")
+            f.write("character_set_server=utf8\n")
+            f.write("default-storage-engine=innodb\n")
+            f.write("\n")
+            f.write("[client]\n")
+            f.write("default-character-set = utf8\n")
+
+    chroot.check_call(["service", "mysql", "restart"], user='root')
 
     with open('mysql/setup.sql', 'r') as f:
         chroot.check_call(["mysql", "--user=root", "--password=mysqlsecret"], stdin=f)
@@ -230,7 +241,7 @@ def remove_karaage(chroot):
 def test_karaage(chroot, tmp_dir, args):
     setup(chroot)
     allow_unauthenticated = add_sources(chroot, tmp_dir, args.distribution, args.source)
-    install_mysql(chroot, args.sql)
+    install_mysql(chroot, args.sql, args.distribution)
     if args.ldap == 'openldap':
         install_openldap(chroot, args.ldif)
         karaage_file = args.karaage or "openldap/global_settings.py"
