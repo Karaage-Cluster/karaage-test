@@ -1,6 +1,5 @@
 # karaage-test
 
-Test building, installing, removing Karaage Debian packages. Should be run from a chroot that will be destroyed as it
-changes system configuration and does not attempt to restore it when finished.
+Test building, installing, removing Karaage Debian packages. Will setup a schroot that will be automatically destroyed.
 
-Currently supports squeeze only.
+Requires python-schroot.
