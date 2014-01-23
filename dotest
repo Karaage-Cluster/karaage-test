@@ -135,13 +135,17 @@ def install_mysql(chroot, sql_file, distribution):
     chroot.check_call(["eatmydata", "apt-get", "install", "--yes", "mysql-server"], user='root')
 
     with chroot.create_file('/etc/mysql/conf.d/karaage.cnf', user='root') as f:
-        if distribution == 'squeeze':
-            f.write("[mysqld]\n")
-            f.write("character_set_server=utf8\n")
-            f.write("default-storage-engine=innodb\n")
-            f.write("\n")
-            f.write("[client]\n")
-            f.write("default-character-set = utf8\n")
+        f.write("[mysqld]\n")
+        f.write("character_set_server = utf8\n")
+        f.write("default-storage-engine = innodb\n")
+        f.write("sql_mode = STRICT_ALL_TABLES\n")
+#        f.write("innodb_log_buffer_size = 32M\n")
+#        f.write("innodb_buffer_pool_size = 2G\n")
+#        f.write("innodb_log_file_size = 768M\n")
+
+        f.write("\n")
+        f.write("[client]\n")
+        f.write("default-character-set = utf8\n")
 
     chroot.check_call(["service", "mysql", "restart"], user='root')
 
