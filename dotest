@@ -29,8 +29,22 @@ env = {
 }
 
 
-def setup(chroot):
+def setup(chroot, distribution):
     chroot.check_call(["apt-get", "install", "--yes", "eatmydata"], user='root')
+
+    with chroot.create_file('/etc/apt/sources.list', user='root') as f:
+        f.write("deb http://hq.in.vpac.org:9999/debian %s main\n" % distribution)
+        if distribution == "sid":
+            distribution = "wheezy"
+        f.write("deb http://code.vpac.org/debian/ %s main\n" % distribution)
+
+        with chroot.create_file('/etc/apt/preferences', user='root') as f:
+            f.write("Package: *\n")
+            f.write("Pin: release l=VPAC\n")
+            f.write("Pin-Priority: 510\n")
+            f.write("\n")
+
+    chroot.check_call(["apt-key", "add", "vpac/vpac-debian-key.gpg"], user='root')
     chroot.check_call(["eatmydata", "apt-get", "update"], user='root')
     chroot.check_call(["eatmydata", "apt-get", "upgrade", "--yes"], user='root')
     chroot.check_call(["eatmydata", "apt-get", "install", "--yes", "git", "build-essential", "debhelper", "python", "python-sphinx", "python-django"], user='root')
@@ -73,7 +87,11 @@ def add_sources(chroot, tmp_dir, distribution, source):
         with chroot.create_file('/etc/apt/preferences', user='root') as f:
             f.write("Package: *\n")
             f.write("Pin: release l=VPAC\n")
-            f.write("Pin-Priority: 500\n")
+            f.write("Pin-Priority: 510\n")
+            f.write("\n")
+            f.write("Package: *\n")
+            f.write("Pin: origin ""\n")
+            f.write("Pin-Priority: 520\n")
             f.write("\n")
 
         allow_unauthenticated = True
@@ -102,7 +120,11 @@ def add_sources(chroot, tmp_dir, distribution, source):
         with chroot.create_file('/etc/apt/preferences', user='root') as f:
             f.write("Package: *\n")
             f.write("Pin: release l=VPAC\n")
-            f.write("Pin-Priority: 500\n")
+            f.write("Pin-Priority: 510\n")
+            f.write("\n")
+            f.write("Package: *\n")
+            f.write("Pin: origin ""\n")
+            f.write("Pin-Priority: 520\n")
             f.write("\n")
 
         allow_unauthenticated = True
@@ -115,14 +137,16 @@ def add_sources(chroot, tmp_dir, distribution, source):
             f.write("deb http://code.vpac.org/debian/ %s main\n" % distribution)
 
         with chroot.create_file('/etc/apt/preferences', user='root') as f:
-            pass
+            f.write("Package: *\n")
+            f.write("Pin: release l=VPAC\n")
+            f.write("Pin-Priority: 510\n")
+            f.write("\n")
 
         allow_unauthenticated = False
     else:
 
         raise RuntimeError("Oops. Unknown source.")
 
-    chroot.check_call(["apt-key", "add", "vpac/vpac-debian-key.gpg"], user='root')
     chroot.check_call(["eatmydata", "apt-get", "update"], user='root')
 
     return allow_unauthenticated
@@ -263,7 +287,7 @@ def remove_karaage(chroot):
 
 
 def test_karaage(chroot, tmp_dir, args):
-    setup(chroot)
+    setup(chroot, args.distribution)
     allow_unauthenticated = add_sources(chroot, tmp_dir, args.distribution, args.source)
     install_mysql(chroot, args.sql, args.distribution)
     if args.ldap == 'openldap':
