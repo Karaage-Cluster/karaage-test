@@ -33,7 +33,6 @@ def setup(chroot):
     chroot.check_call(["apt-get", "install", "--yes", "eatmydata"], user='root')
     chroot.check_call(["eatmydata", "apt-get", "update"], user='root')
     chroot.check_call(["eatmydata", "apt-get", "upgrade", "--yes"], user='root')
-    # python-support required for pysupport, should be replaced by python2 install method.
     chroot.check_call(["eatmydata", "apt-get", "install", "--yes", "git", "build-essential", "debhelper", "python", "python-sphinx", "python-django"], user='root')
     chroot.check_call(["debconf-set-selections", "debconf.conf"], user='root')
 
