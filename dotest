@@ -34,7 +34,7 @@ def setup(chroot):
     chroot.check_call(["eatmydata", "apt-get", "update"], user='root')
     chroot.check_call(["eatmydata", "apt-get", "upgrade", "--yes"], user='root')
     # python-support required for pysupport, should be replaced by python2 install method.
-    chroot.check_call(["eatmydata", "apt-get", "install", "--yes", "git", "build-essential", "debhelper", "cdbs", "python-support", "python-sphinx"], user='root')
+    chroot.check_call(["eatmydata", "apt-get", "install", "--yes", "git", "build-essential", "debhelper", "python", "python-sphinx", "python-django"], user='root')
     chroot.check_call(["debconf-set-selections", "debconf.conf"], user='root')
 
 
@@ -55,7 +55,6 @@ def add_sources(chroot, tmp_dir, distribution, source):
         try:
             os.chdir(tmp_dir)
             build_git_package(chroot, "file:///home/brian/tree/django/django-tldap/django-tldap", "django-tldap")
-            build_git_package(chroot, "file:///home/brian/tree/django/django-placard/django-placard", "django-placard")
             build_git_package(chroot, "file:///home/brian/tree/django/karaage/karaage", "karaage3")
             build_git_package(chroot, "file:///home/brian/tree/django/karaage/karaage-admin", "karaage3-admin")
             build_git_package(chroot, "file:///home/brian/tree/django/karaage/karaage-registration", "karaage3-registration")
@@ -84,7 +83,6 @@ def add_sources(chroot, tmp_dir, distribution, source):
         try:
             os.chdir(tmp_dir)
             build_git_package(chroot, "git://github.com/VPAC/django-tldap.git", "django-tldap")
-            build_git_package(chroot, "git://github.com/VPAC/django-placard.git", "django-placard")
             build_git_package(chroot, "git://github.com/Karaage-Cluster/karaage.git", "karaage")
             build_git_package(chroot, "git://github.com/Karaage-Cluster/karaage-common.git", "karaage-common")
             build_git_package(chroot, "git://github.com/Karaage-Cluster/karaage-admin.git", "karaage-admin")
