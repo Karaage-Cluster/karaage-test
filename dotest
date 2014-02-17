@@ -47,7 +47,7 @@ def setup(chroot, distribution):
     chroot.check_call(["apt-key", "add", "vpac/vpac-debian-key.gpg"], user='root')
     chroot.check_call(["eatmydata", "apt-get", "update"], user='root')
     chroot.check_call(["eatmydata", "apt-get", "upgrade", "--yes"], user='root')
-    chroot.check_call(["eatmydata", "apt-get", "install", "--yes", "git", "build-essential", "debhelper", "python", "python-sphinx", "python-django"], user='root')
+    chroot.check_call(["eatmydata", "apt-get", "install", "--yes", "git", "build-essential", "debhelper", "python", "python-sphinx", "python-django", "python-django-south"], user='root')
     chroot.check_call(["debconf-set-selections", "debconf.conf"], user='root')
 
 
@@ -255,8 +255,9 @@ def install_karaage(chroot, allow_unauthenticated):
 
     chroot.check_call(["eatmydata", "apt-get", "install", "--yes", "libjs-jquery-ui", "python-mysqldb"], user='root')
     chroot.check_call(["eatmydata", "apt-get", "install", "--yes", "apache2", "libapache2-mod-wsgi" ], user='root')
-    chroot.check_call(["eatmydata", "apt-get", "install", "--yes", "karaage3"] + args, user='root')
+#    chroot.check_call(["eatmydata", "apt-get", "install", "--yes", "karaage3"] + args, user='root')
     chroot.check_call(["eatmydata", "apt-get", "install", "--yes", "karaage3-admin", "karaage3-registration"] + args, user='root')
+    chroot.check_call(["eatmydata", "apt-get", "install", "--yes", "karaage3-celery"] + args, user='root')
 
 def config_karaage(chroot, karaage_file, distribution):
     chroot.copy(karaage_file, "/etc/karaage/global_settings.py", user="root")
@@ -272,14 +273,19 @@ def config_karaage(chroot, karaage_file, distribution):
         chroot.check_call(["ln", "-s", "/etc/karaage/kgreg-apache.conf", "/etc/apache2/conf.d/"], user='root')
     else:
         raise RuntimeError("Unknown distribution")
-    chroot.check_call(["service", "apache2", "reload"], user='root')
 
     chroot.check_call(["kg-manage", "syncdb", "--noinput"], user='root')
     chroot.check_call(["kg-manage", "migrate", "--all", "--traceback"], user='root')
+    chroot.check_call(["sed", "-i", "s/^\(LDAP_PEOPLE *= *\).*$/\\1True/", "/etc/karaage/global_settings.py"], user='root')
+    chroot.check_call(["kg-manage", "migrate_ldap", "--traceback"], user='root')
+
+    chroot.check_call(["service", "apache2", "reload"], user='root')
+    chroot.check_call(["service", "karaage3-celery", "restart"], user='root')
     chroot.check_call(["kg-manage", "kgcreatesuperuser",
         "--username=kgadmin", "--email=kgadmin@example.org", "--password=1234",
         "--short_name=karaage", "--full_name=admin", "--institute=test"],
         user='root')
+
 
 def remove_karaage(chroot):
     chroot.check_call(["eatmydata", "apt-get", "remove", "--purge", "--yes", "karaage3"], user='root')
