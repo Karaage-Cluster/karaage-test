@@ -84,14 +84,14 @@ LDAP = {
     }
 }
 
-DATASTORES = {
+MACHINE_CATEGORY_DATASTORES = {
     'ldap' : [
         {
-            'DESCRIPTION': 'Default LDAP datastore',
-            'ENGINE': 'karaage.datastores.ldap.AccountDataStore',
+            'DESCRIPTION': 'LDAP datastore',
+            'ENGINE': 'karaage.datastores.ldap.MachineCategoryDataStore',
             'LDAP': 'default',
             'ACCOUNT': 'karaage.datastores.ldap_schemas.ds389_account',
-            'GROUP': 'karaage.datastores.ldap_schemas.ds389_group',
+            'GROUP': 'karaage.datastores.ldap_schemas.ds389_account_group',
             'PRIMARY_GROUP': "institute",
             'DEFAULT_PRIMARY_GROUP': "dummy",
             'HOME_DIRECTORY': "/home/%(uid)s",
@@ -106,9 +106,18 @@ DATASTORES = {
 
 LDAP_PEOPLE = False
 if LDAP_PEOPLE:
-    DATASTORES['ldap'][0]['PERSON'] = 'karaage.datastores.ldap_schemas.openldap_person'
-    DATASTORES['ldap'][0]['LDAP_PERSON_BASE'] = 'ou=People,dc=example, dc=org'
-    DATASTORES['ldap'][0]['LDAP_ACCOUNT_BASE'] = 'ou=Accounts,dc=example, dc=org'
+    GLOBAL_DATASTORES = [
+        {
+            'DESCRIPTION': 'LDAP datastore',
+            'ENGINE': 'karaage.datastores.ldap.GlobalDataStore',
+            'LDAP': 'default',
+            'PERSON': 'karaage.datastores.ldap_schemas.ds389_person',
+            'GROUP': 'karaage.datastores.ldap_schemas.ds389_person_group',
+            'LDAP_PERSON_BASE': 'ou=People,dc=example, dc=org',
+            'LDAP_GROUP_BASE': 'ou=Groups,dc=example, dc=org',
+        },
+    ]
+    MACHINE_CATEGORY_DATASTORES['ldap'][0]['LDAP_ACCOUNT_BASE'] = 'ou=Accounts,dc=example, dc=org'
 
 
 ###
