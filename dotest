@@ -47,7 +47,7 @@ def setup(chroot, distribution):
     chroot.check_call(["apt-key", "add", "vpac/vpac-debian-key.gpg"], user='root')
     chroot.check_call(["eatmydata", "apt-get", "update"], user='root')
     chroot.check_call(["eatmydata", "apt-get", "upgrade", "--yes"], user='root')
-    chroot.check_call(["eatmydata", "apt-get", "install", "--yes", "git", "build-essential", "debhelper", "python", "python-sphinx", "python-django", "python-django-south"], user='root')
+    chroot.check_call(["eatmydata", "apt-get", "install", "--yes", "git", "build-essential", "debhelper", "python", "python-sphinx", "python-django", "python-django-south", "python-setuptools"], user='root')
     chroot.check_call(["debconf-set-selections", "debconf.conf"], user='root')
 
 
