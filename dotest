@@ -101,7 +101,6 @@ def add_sources(chroot, tmp_dir, distribution, source):
             os.chdir(tmp_dir)
             build_git_package(chroot, "git://github.com/VPAC/django-tldap.git", "django-tldap")
             build_git_package(chroot, "git://github.com/Karaage-Cluster/karaage.git", "karaage")
-            build_git_package(chroot, "git://github.com/Karaage-Cluster/karaage-common.git", "karaage-common")
             build_git_package(chroot, "git://github.com/Karaage-Cluster/karaage-admin.git", "karaage-admin")
             build_git_package(chroot, "git://github.com/Karaage-Cluster/karaage-registration.git", "karaage-registration")
 
