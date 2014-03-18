@@ -279,7 +279,7 @@ def config_karaage(chroot, karaage_file, distribution):
     chroot.check_call(["kg-manage", "migrate_ldap", "--traceback"], user='root')
 
     chroot.check_call(["service", "apache2", "reload"], user='root')
-    chroot.check_call(["service", "karaage3-celery", "restart"], user='root')
+    chroot.check_call(["service", "python-karaage-celery", "restart"], user='root')
     chroot.check_call(["kg-manage", "kgcreatesuperuser",
         "--username=kgadmin", "--email=kgadmin@example.org", "--password=1234",
         "--short_name=karaage", "--full_name=admin", "--institute=test"],
