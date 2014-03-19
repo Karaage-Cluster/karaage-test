@@ -27,10 +27,17 @@ from contextlib import contextmanager
 
 logger = logging.getLogger(__name__)
 
-env = {
+
+interactive_env = {
         'PATH': '/usr/sbin:/usr/bin:/sbin:/bin',
         'DEBCONF_DEBUG': 'developer',
 }
+
+env = dict(interactive_env)
+env.update({
+        'DEBIAN_FRONTEND': 'Noninteractive',
+})
+
 
 
 def setup(chroot, distribution):
@@ -313,19 +320,29 @@ def test_karaage(chroot, tmp_dir, args):
         print("")
         print("Configured. tmp_dir=%s" % tmp_dir)
         print("Entering shell, please exit to finish.")
-        chroot.check_call(["bash"], user='root')
+        chroot.check_call(["bash"], user='root', env=interactive_env)
     if not args.keep:
         remove_karaage(chroot)
+
+
+class Schroot(schroot.chroot.SchrootChroot):
+    def _command(self, cmd, kwargs):
+        preserve_environment = kwargs.pop("preserve_environment", True)
+        kwargs["preserve_environment"] = preserve_environment
+        kwargs["env"] = kwargs.pop("env", env)
+        return super(Schroot, self)._command(cmd, kwargs)
 
 
 class LocalRoot(schroot.chroot.SchrootChroot):
     def _command(self, cmd, kwargs):
         user = kwargs.pop("user", None)
-        kwargs.pop("preserve_environment", False)
+        preserve_environment = kwargs.pop("preserve_environment", False)
 
         command = ['sudo']
         if user:
             command += ['-u', user]
+        if preserve_environment:
+            command += ['-E']
         command += ['--'] + cmd
 
         logger.debug(" ".join((str(x) for x in command)))
@@ -345,7 +362,7 @@ def root(localhost, name):
     if localhost:
         ch = LocalRoot()
     else:
-        ch = schroot.chroot.SchrootChroot()
+        ch = Schroot()
     try:
         ch.start(name)
         yield ch
@@ -384,7 +401,7 @@ def main():
                     print("Exception occured. tmp_dir=%s" % tmp_dir)
                     print(e)
                     print("Entering shell, please exit to finish.")
-                    chroot.check_call(["bash"], user='root')
+                    chroot.check_call(["bash"], user='root', env=interactive_env)
                 raise
 
     finally:
