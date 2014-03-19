@@ -35,7 +35,7 @@ interactive_env = {
 
 env = dict(interactive_env)
 env.update({
-        'DEBIAN_FRONTEND': 'Noninteractive',
+        'DEBIAN_FRONTEND': 'noninteractive',
 })
 
 
