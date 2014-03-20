@@ -338,12 +338,16 @@ class LocalRoot(schroot.chroot.SchrootChroot):
         user = kwargs.pop("user", None)
         preserve_environment = kwargs.pop("preserve_environment", True)
 
-        command = ['sudo']
+        command = []
+
         if user:
+            command += ['sudo']
             command += ['-u', user]
-        if preserve_environment:
-            command += ['-E']
-        command += ['--'] + cmd
+            if preserve_environment:
+                command += ['-E']
+            command += ['--']
+
+        command += cmd
 
         logger.debug(" ".join((str(x) for x in command)))
         return command
