@@ -421,7 +421,7 @@ class Schroot(schroot.chroot.SchrootChroot):
 class LocalRoot(schroot.chroot.SchrootChroot):
     def _command(self, cmd, kwargs):
         user = kwargs.pop("user", None)
-        preserve_environment = kwargs.pop("preserve_environment", False)
+        preserve_environment = kwargs.pop("preserve_environment", True)
 
         command = ['sudo']
         if user:
