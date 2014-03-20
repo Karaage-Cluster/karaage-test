@@ -43,8 +43,7 @@ def setup(chroot, distribution):
     chroot.check_call(["apt-get", "install", "--yes", "eatmydata"])
 
     with chroot.create_file('/etc/apt/sources.list') as f:
-        f.write(
-            "deb http://hq.in.vpac.org:9999/debian %s main\n" % distribution)
+        f.write("deb http://hq.in.vpac.org:9999/debian %s main\n" % distribution)
         if distribution == "sid":
             distribution = "wheezy"
         f.write("deb http://code.vpac.org/debian/ %s main\n" % distribution)
@@ -58,10 +57,7 @@ def setup(chroot, distribution):
     chroot.check_call(["apt-key", "add", "vpac/vpac-debian-key.gpg"])
     chroot.check_call(["eatmydata", "apt-get", "update"])
     chroot.check_call(["eatmydata", "apt-get", "upgrade", "--yes"])
-    chroot.check_call([
-        "eatmydata", "apt-get", "install", "--yes",
-        "git", "build-essential", "debhelper", "python", "python-sphinx",
-        "python-django", "python-django-south", "python-setuptools"])
+    chroot.check_call(["eatmydata", "apt-get", "install", "--yes", "git", "build-essential", "debhelper", "python", "python-sphinx", "python-django", "python-django-south", "python-setuptools"])
     chroot.check_call(["debconf-set-selections", "debconf.conf"])
 
 
@@ -81,22 +77,10 @@ def add_sources(chroot, tmp_dir, distribution, source):
         old_dir = os.getcwd()
         try:
             os.chdir(tmp_dir)
-            build_git_package(
-                chroot,
-                "file:///home/brian/tree/django/django-tldap/django-tldap",
-                "django-tldap")
-            build_git_package(
-                chroot,
-                "file:///home/brian/tree/django/karaage/karaage",
-                "karaage3")
-            build_git_package(
-                chroot,
-                "file:///home/brian/tree/django/karaage/karaage-admin",
-                "karaage3-admin")
-            build_git_package(
-                chroot,
-                "file:///home/brian/tree/django/karaage/karaage-registration",
-                "karaage3-registration")
+            build_git_package(chroot, "file:///home/brian/tree/django/django-tldap/django-tldap", "django-tldap")
+            build_git_package(chroot, "file:///home/brian/tree/django/karaage/karaage", "karaage3")
+            build_git_package(chroot, "file:///home/brian/tree/django/karaage/karaage-admin", "karaage3-admin")
+            build_git_package(chroot, "file:///home/brian/tree/django/karaage/karaage-registration", "karaage3-registration")
 
             with open('Packages', 'w') as f:
                 chroot.check_call(["dpkg-scanpackages", "."], stdout=f)
@@ -105,13 +89,10 @@ def add_sources(chroot, tmp_dir, distribution, source):
 
         with chroot.create_file('/etc/apt/sources.list') as f:
             f.write("deb file://%s ./\n" % (tmp_dir))
-            f.write(
-                "deb http://hq.in.vpac.org:9999/debian %s main\n"
-                % distribution)
+            f.write("deb http://hq.in.vpac.org:9999/debian %s main\n" % distribution)
             if distribution == "sid":
                 distribution = "wheezy"
-            f.write(
-                "deb http://code.vpac.org/debian/ %s main\n" % distribution)
+            f.write("deb http://code.vpac.org/debian/ %s main\n" % distribution)
 
         with chroot.create_file('/etc/apt/preferences') as f:
             f.write("Package: *\n")
@@ -128,22 +109,10 @@ def add_sources(chroot, tmp_dir, distribution, source):
         old_dir = os.getcwd()
         try:
             os.chdir(tmp_dir)
-            build_git_package(
-                chroot,
-                "git://github.com/VPAC/django-tldap.git",
-                "django-tldap")
-            build_git_package(
-                chroot,
-                "git://github.com/Karaage-Cluster/karaage.git",
-                "karaage")
-            build_git_package(
-                chroot,
-                "git://github.com/Karaage-Cluster/karaage-admin.git",
-                "karaage-admin")
-            build_git_package(
-                chroot,
-                "git://github.com/Karaage-Cluster/karaage-registration.git",
-                "karaage-registration")
+            build_git_package(chroot, "git://github.com/VPAC/django-tldap.git", "django-tldap")
+            build_git_package(chroot, "git://github.com/Karaage-Cluster/karaage.git", "karaage")
+            build_git_package(chroot, "git://github.com/Karaage-Cluster/karaage-admin.git", "karaage-admin")
+            build_git_package(chroot, "git://github.com/Karaage-Cluster/karaage-registration.git", "karaage-registration")
 
             with open('Packages', 'w') as f:
                 chroot.check_call(["dpkg-scanpackages", "."], stdout=f)
@@ -152,13 +121,10 @@ def add_sources(chroot, tmp_dir, distribution, source):
 
         with chroot.create_file('/etc/apt/sources.list') as f:
             f.write("deb file://%s ./\n" % (tmp_dir))
-            f.write(
-                "deb http://hq.in.vpac.org:9999/debian %s main\n"
-                % distribution)
+            f.write("deb http://hq.in.vpac.org:9999/debian %s main\n" % distribution)
             if distribution == "sid":
                 distribution = "wheezy"
-            f.write(
-                "deb http://code.vpac.org/debian/ %s main\n" % distribution)
+            f.write("deb http://code.vpac.org/debian/ %s main\n" % distribution)
 
         with chroot.create_file('/etc/apt/preferences') as f:
             f.write("Package: *\n")
@@ -174,13 +140,10 @@ def add_sources(chroot, tmp_dir, distribution, source):
     elif source == "vpac":
 
         with chroot.create_file('/etc/apt/sources.list') as f:
-            f.write(
-                "deb http://hq.in.vpac.org:9999/debian %s main\n"
-                % distribution)
+            f.write("deb http://hq.in.vpac.org:9999/debian %s main\n" % distribution)
             if distribution == "sid":
                 distribution = "wheezy"
-            f.write(
-                "deb http://code.vpac.org/debian/ %s main\n" % distribution)
+            f.write("deb http://code.vpac.org/debian/ %s main\n" % distribution)
 
         with chroot.create_file('/etc/apt/preferences') as f:
             f.write("Package: *\n")
@@ -199,8 +162,7 @@ def add_sources(chroot, tmp_dir, distribution, source):
 
 
 def install_mysql(chroot, sql_file, distribution):
-    chroot.check_call(
-        ["eatmydata", "apt-get", "install", "--yes", "mysql-server"])
+    chroot.check_call(["eatmydata", "apt-get", "install", "--yes", "mysql-server"])
 
     with chroot.create_file('/etc/mysql/conf.d/karaage.cnf') as f:
         f.write("[mysqld]\n")
@@ -218,59 +180,46 @@ def install_mysql(chroot, sql_file, distribution):
     chroot.check_call(["service", "mysql", "restart"])
 
     with open('mysql/setup.sql', 'r') as f:
-        chroot.check_call(
-            ["mysql", "--user=root", "--password=mysqlsecret"], stdin=f)
+        chroot.check_call(["mysql", "--user=root", "--password=mysqlsecret"], stdin=f)
 
     if sql_file is not None:
         with open(sql_file, 'r') as f:
-            chroot.check_call(
-                ["mysql", "--user=root", "--password=mysqlsecret"], stdin=f)
+            chroot.check_call(["mysql", "--user=root", "--password=mysqlsecret"], stdin=f)
 
-    tables = chroot.check_output(
-        ["mysql", "-B", "-N", "-e", "SHOW TABLES", "-pmysqlsecret", "karaage"])
+    tables = chroot.check_output(["mysql", "-B", "-N", "-e", "SHOW TABLES", "-pmysqlsecret", "karaage"])
     for table in tables.split("\n"):
         if table == "":
             continue
-        sql = "ALTER TABLE %s " \
-            "CONVERT TO CHARACTER SET utf8 COLLATE utf8_general_ci" % table
-        chroot.check_call(
-            ["mysql", "-B", "-e", sql, "-pmysqlsecret", "karaage"])
+        sql = "ALTER TABLE %s CONVERT TO CHARACTER SET utf8 COLLATE utf8_general_ci" % table
+        chroot.check_call(["mysql", "-B", "-e", sql, "-pmysqlsecret", "karaage"])
 
 
 def install_openldap(chroot, ldif_file):
-    chroot.check_call(
-        ["eatmydata", "apt-get", "install", "--yes", "slapd", "ldap-utils"])
+    chroot.check_call(["eatmydata", "apt-get", "install", "--yes", "slapd", "ldap-utils"])
 
     # load ppolicy schema
     with open('openldap/ppolicy.ldif', 'r') as f:
-        chroot.check_call(
-            ["ldapadd", "-Y", "EXTERNAL", "-H", "ldapi:///"], stdin=f)
+        chroot.check_call(["ldapadd", "-Y", "EXTERNAL", "-H", "ldapi:///"], stdin=f)
 
     # load ppolicy module
     with open('openldap/ppolicy1.ldif', 'r') as f:
-        chroot.check_call(
-            ["ldapadd", "-Y", "EXTERNAL", "-H", "ldapi:///"], stdin=f)
+        chroot.check_call(["ldapadd", "-Y", "EXTERNAL", "-H", "ldapi:///"], stdin=f)
 
     if ldif_file is None:
 
         # load default ppolicy policy
         with open('openldap/ppolicy2.ldif', 'r') as f:
-            chroot.check_call(
-                ["ldapadd", "-x", "-H", "ldapi:///",
-                    "-D", "cn=admin,dc=example,dc=org", "-w", "slapdsecret"],
-                stdin=f)
+            chroot.check_call(["ldapadd", "-x", "-H", "ldapi:///", "-D", "cn=admin,dc=example,dc=org", "-w", "slapdsecret"], stdin=f)
 
         # configure default ppolicy policy
         with open('openldap/ppolicy3.ldif', 'r') as f:
-            chroot.check_call(
-                ["ldapadd", "-Y", "EXTERNAL", "-H", "ldapi:///"], stdin=f)
+            chroot.check_call(["ldapadd", "-Y", "EXTERNAL", "-H", "ldapi:///"], stdin=f)
 
     else:
 
         # reconfigure base DN
         with open(ldif_file + '-config.ldif', 'r') as f:
-            chroot.check_call(
-                ["ldapmodify", "-Y", "EXTERNAL", "-H", "ldapi:///"], stdin=f)
+            chroot.check_call(["ldapmodify", "-Y", "EXTERNAL", "-H", "ldapi:///"], stdin=f)
 
         # kill existing data
         chroot.check_call(["service", "slapd", "stop"])
@@ -279,8 +228,7 @@ def install_openldap(chroot, ldif_file):
         with open('/dev/null', 'r') as f:
             chroot.check_call(["slapadd"], stdin=f)
         chroot.check_call(["slapindex"])
-        chroot.check_call(
-            ["chown", "openldap:openldap", "-R", "/var/lib/ldap/"])
+        chroot.check_call(["chown", "openldap:openldap", "-R", "/var/lib/ldap/"])
         chroot.check_call(["service", "slapd", "start"])
 
         # load default ppolicy policy
@@ -288,108 +236,74 @@ def install_openldap(chroot, ldif_file):
         with open(ldif_file + '-ppolicy2.ldif', 'r') as f:
             chroot.check_call(["slapadd"], stdin=f)
         chroot.check_call(["slapindex"])
-        chroot.check_call(
-            ["chown", "openldap:openldap", "-R", "/var/lib/ldap/"])
+        chroot.check_call(["chown", "openldap:openldap", "-R", "/var/lib/ldap/"])
         chroot.check_call(["service", "slapd", "start"])
 
         # configure default ppolicy policy
         with open(ldif_file + '-ppolicy3.ldif', 'r') as f:
-            chroot.check_call(
-                ["ldapadd", "-Y", "EXTERNAL", "-H", "ldapi:///"], stdin=f)
+            chroot.check_call(["ldapadd", "-Y", "EXTERNAL", "-H", "ldapi:///"], stdin=f)
 
         # load VPAC data
         chroot.check_call(["service", "slapd", "stop"])
         with open(ldif_file + '.ldif', 'r') as f:
             chroot.check_call(["slapadd"], stdin=f)
         chroot.check_call(["slapindex"])
-        chroot.check_call(
-            ["chown", "openldap:openldap", "-R", "/var/lib/ldap/"])
+        chroot.check_call(["chown", "openldap:openldap", "-R", "/var/lib/ldap/"])
         chroot.check_call(["service", "slapd", "start"])
 
-
 def install_389(chroot, ldif_file):
-    chroot.check_call(
-        ["eatmydata", "apt-get", "install", "--yes",
-            "389-ds-base", "ldap-utils"])
+    chroot.check_call(["eatmydata", "apt-get", "install", "--yes", "389-ds-base", "ldap-utils"])
     chroot.check_call(["setup-ds", "-s", "-f", "389/setup.inf"])
 #    with open('389/app.ldif', 'r') as f:
-#        chroot.check_call(["ldapmodify", "-D", "cn=Directory Manager",
-#                          "-w", "slapsecret"], stdin=f)
-
+#        chroot.check_call(["ldapmodify", "-D", "cn=Directory Manager", "-w", "slapsecret"], stdin=f)
 
 def install_karaage(chroot, allow_unauthenticated):
     args = []
     if allow_unauthenticated:
         args += ["--allow-unauthenticated"]
 
-    chroot.check_call(
-        ["eatmydata", "apt-get", "install", "--yes",
-            "libjs-jquery-ui", "python-mysqldb"])
-    chroot.check_call(
-        ["eatmydata", "apt-get", "install", "--yes",
-            "apache2", "libapache2-mod-wsgi"])
-#    chroot.check_call(
-#        ["eatmydata", "apt-get", "install", "--yes",
-#            "karaage3"] + args)
-    chroot.check_call(
-        ["eatmydata", "apt-get", "install", "--yes",
-            "karaage3-admin", "karaage3-registration"] + args)
-    chroot.check_call(
-        ["eatmydata", "apt-get", "install", "--yes",
-            "karaage3-celery"] + args)
-
+    chroot.check_call(["eatmydata", "apt-get", "install", "--yes", "libjs-jquery-ui", "python-mysqldb"])
+    chroot.check_call(["eatmydata", "apt-get", "install", "--yes", "apache2", "libapache2-mod-wsgi" ])
+#    chroot.check_call(["eatmydata", "apt-get", "install", "--yes", "karaage3"] + args)
+    chroot.check_call(["eatmydata", "apt-get", "install", "--yes", "karaage3-admin", "karaage3-registration"] + args)
+    chroot.check_call(["eatmydata", "apt-get", "install", "--yes", "karaage3-celery"] + args)
 
 def config_karaage(chroot, karaage_file, distribution):
     chroot.copy(karaage_file, "/etc/karaage/global_settings.py", user="root")
     chroot.check_call(["kg_set_secret_key"])
     chroot.check_call(["chmod", "a+r", "/etc/karaage/global_settings.py"])
     if distribution == 'sid':
-        chroot.check_call(
-            ["ln", "-s", "/etc/karaage/kgadmin-apache.conf",
-                "/etc/apache2/conf-available/"])
-        chroot.check_call(
-            ["ln", "-s", "/etc/karaage/kgreg-apache.conf",
-                "/etc/apache2/conf-available/"])
+        chroot.check_call(["ln", "-s", "/etc/karaage/kgadmin-apache.conf", "/etc/apache2/conf-available/"])
+        chroot.check_call(["ln", "-s", "/etc/karaage/kgreg-apache.conf", "/etc/apache2/conf-available/"])
         chroot.check_call(["a2enconf", "kgadmin-apache"])
         chroot.check_call(["a2enconf", "kgreg-apache"])
     elif distribution == "squeeze" or distribution == "wheezy":
-        chroot.check_call(
-            ["ln", "-s", "/etc/karaage/kgadmin-apache.conf",
-                "/etc/apache2/conf.d/"])
-        chroot.check_call(
-            ["ln", "-s", "/etc/karaage/kgreg-apache.conf",
-                "/etc/apache2/conf.d/"])
+        chroot.check_call(["ln", "-s", "/etc/karaage/kgadmin-apache.conf", "/etc/apache2/conf.d/"])
+        chroot.check_call(["ln", "-s", "/etc/karaage/kgreg-apache.conf", "/etc/apache2/conf.d/"])
     else:
         raise RuntimeError("Unknown distribution")
 
     chroot.check_call(["kg-manage", "syncdb", "--noinput"])
     chroot.check_call(["kg-manage", "migrate", "--all", "--traceback"])
-    chroot.check_call(
-        ["sed", "-i", "s/^\(LDAP_PEOPLE *= *\).*$/\\1True/",
-            "/etc/karaage/global_settings.py"])
+    chroot.check_call(["sed", "-i", "s/^\(LDAP_PEOPLE *= *\).*$/\\1True/", "/etc/karaage/global_settings.py"])
     chroot.check_call(["kg-manage", "migrate_ldap", "--traceback"])
 
     chroot.check_call(["service", "apache2", "reload"])
     chroot.check_call(["service", "python-karaage-celery", "restart"])
-    chroot.check_call(
-        ["kg-manage", "kgcreatesuperuser",
-            "--username=kgadmin", "--email=kgadmin@example.org",
-            "--password=1234", "--short_name=karaage", "--full_name=admin",
-            "--institute=test"],
+    chroot.check_call(["kg-manage", "kgcreatesuperuser",
+        "--username=kgadmin", "--email=kgadmin@example.org", "--password=1234",
+        "--short_name=karaage", "--full_name=admin", "--institute=test"],
         user='root')
 
 
 def remove_karaage(chroot):
-    chroot.check_call(
-        ["eatmydata", "apt-get", "remove", "--purge", "--yes", "karaage3"])
-    chroot.check_call(
-        ["eatmydata", "apt-get", "autoremove", "--purge", "--yes"])
+    chroot.check_call(["eatmydata", "apt-get", "remove", "--purge", "--yes", "karaage3"])
+    chroot.check_call(["eatmydata", "apt-get", "autoremove", "--purge", "--yes" ])
 
 
 def test_karaage(chroot, tmp_dir, args):
     setup(chroot, args.distribution)
-    allow_unauthenticated = add_sources(
-        chroot, tmp_dir, args.distribution, args.source)
+    allow_unauthenticated = add_sources(chroot, tmp_dir, args.distribution, args.source)
     install_mysql(chroot, args.sql, args.distribution)
     if args.ldap == 'openldap':
         install_openldap(chroot, args.ldif)
@@ -458,45 +372,17 @@ def root(localhost, name):
 def main():
     logging.config.fileConfig("dotest.cfg")
 
-    parser = argparse.ArgumentParser(
-        description='Test karaage Debian packages.')
-    parser.add_argument(
-        "-d", "--distribution",
-        choices=['squeeze', 'wheezy', 'sid'], default="wheezy",
-        help="Which distribution?")
-    parser.add_argument(
-        "--localhost",
-        action="store_true",
-        help="Act on local system, not schroot (potentially dangerous)")
-    parser.add_argument(
-        "-l", "--ldap",
-        choices=['openldap', '389'], default="openldap",
-        help="Which LDAP server?")
-    parser.add_argument(
-        "-s", "--source",
-        choices=['local', 'github', 'vpac'], default="github",
-        help="Where to get packages from")
-    parser.add_argument(
-        "-r", "--shell",
-        action="store_true",
-        help="Run shell on configured")
-    parser.add_argument(
-        "-e", "--error",
-        action="store_true",
-        help="Run shell on error")
-    parser.add_argument(
-        "-S", "--sql",
-        help="Initialise mysql with this sql file")
-    parser.add_argument(
-        "-L", "--ldif",
-        help="Initialise openldap with this file")
-    parser.add_argument(
-        "-k", "--karaage",
-        help="Karaage config file to use")
-    parser.add_argument(
-        "--keep",
-        action="store_true",
-        help="Don't uninstall everything on completion")
+    parser = argparse.ArgumentParser(description='Test karaage Debian packages.')
+    parser.add_argument("-d", "--distribution", choices=['squeeze', 'wheezy', 'sid'], default="wheezy", help="Which distribution?")
+    parser.add_argument("--localhost", action="store_true", help="Act on local system, not schroot (potentially dangerous)")
+    parser.add_argument("-l", "--ldap", choices=['openldap', '389'], default="openldap", help="Which LDAP server?")
+    parser.add_argument("-s", "--source", choices=['local', 'github', 'vpac'], default="github", help="Where to get packages from")
+    parser.add_argument("-r", "--shell", action="store_true", help="Run shell on configured")
+    parser.add_argument("-e", "--error", action="store_true", help="Run shell on error")
+    parser.add_argument("-S", "--sql", help="Initialise mysql with this sql file")
+    parser.add_argument("-L", "--ldif", help="Initialise openldap with this file")
+    parser.add_argument("-k", "--karaage", help="Karaage config file to use")
+    parser.add_argument("--keep", action="store_true", help="Don't uninstall everything on completion")
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.DEBUG)
@@ -520,9 +406,9 @@ def main():
     finally:
         try:
             if tmp_dir is not None:
-                shutil.rmtree(tmp_dir)  # delete directory
+                shutil.rmtree(tmp_dir) # delete directory
         except OSError, e:
-            if e.errno != 2:  # code 2 - no such file or directory
+            if e.errno != 2: # code 2 - no such file or directory
                 raise
 
 if __name__ == "__main__":
