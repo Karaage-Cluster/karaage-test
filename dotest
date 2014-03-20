@@ -29,37 +29,36 @@ logger = logging.getLogger(__name__)
 
 
 interactive_env = {
-        'PATH': '/usr/sbin:/usr/bin:/sbin:/bin',
-        'DEBCONF_DEBUG': 'developer',
+    'PATH': '/usr/sbin:/usr/bin:/sbin:/bin',
+    'DEBCONF_DEBUG': 'developer',
 }
 
 env = dict(interactive_env)
 env.update({
-        'DEBIAN_FRONTEND': 'noninteractive',
+    'DEBIAN_FRONTEND': 'noninteractive',
 })
 
 
-
 def setup(chroot, distribution):
-    chroot.check_call(["apt-get", "install", "--yes", "eatmydata"], user='root')
+    chroot.check_call(["apt-get", "install", "--yes", "eatmydata"])
 
-    with chroot.create_file('/etc/apt/sources.list', user='root') as f:
+    with chroot.create_file('/etc/apt/sources.list') as f:
         f.write("deb http://hq.in.vpac.org:9999/debian %s main\n" % distribution)
         if distribution == "sid":
             distribution = "wheezy"
         f.write("deb http://code.vpac.org/debian/ %s main\n" % distribution)
 
-        with chroot.create_file('/etc/apt/preferences', user='root') as f:
+        with chroot.create_file('/etc/apt/preferences') as f:
             f.write("Package: *\n")
             f.write("Pin: release l=VPAC\n")
             f.write("Pin-Priority: 510\n")
             f.write("\n")
 
-    chroot.check_call(["apt-key", "add", "vpac/vpac-debian-key.gpg"], user='root')
-    chroot.check_call(["eatmydata", "apt-get", "update"], user='root')
-    chroot.check_call(["eatmydata", "apt-get", "upgrade", "--yes"], user='root')
-    chroot.check_call(["eatmydata", "apt-get", "install", "--yes", "git", "build-essential", "debhelper", "python", "python-sphinx", "python-django", "python-django-south", "python-setuptools"], user='root')
-    chroot.check_call(["debconf-set-selections", "debconf.conf"], user='root')
+    chroot.check_call(["apt-key", "add", "vpac/vpac-debian-key.gpg"])
+    chroot.check_call(["eatmydata", "apt-get", "update"])
+    chroot.check_call(["eatmydata", "apt-get", "upgrade", "--yes"])
+    chroot.check_call(["eatmydata", "apt-get", "install", "--yes", "git", "build-essential", "debhelper", "python", "python-sphinx", "python-django", "python-django-south", "python-setuptools"])
+    chroot.check_call(["debconf-set-selections", "debconf.conf"])
 
 
 def build_git_package(chroot, src, name, branch="master"):
@@ -88,14 +87,14 @@ def add_sources(chroot, tmp_dir, distribution, source):
         finally:
             os.chdir(old_dir)
 
-        with chroot.create_file('/etc/apt/sources.list', user='root') as f:
+        with chroot.create_file('/etc/apt/sources.list') as f:
             f.write("deb file://%s ./\n" % (tmp_dir))
             f.write("deb http://hq.in.vpac.org:9999/debian %s main\n" % distribution)
             if distribution == "sid":
                 distribution = "wheezy"
             f.write("deb http://code.vpac.org/debian/ %s main\n" % distribution)
 
-        with chroot.create_file('/etc/apt/preferences', user='root') as f:
+        with chroot.create_file('/etc/apt/preferences') as f:
             f.write("Package: *\n")
             f.write("Pin: release l=VPAC\n")
             f.write("Pin-Priority: 510\n")
@@ -120,14 +119,14 @@ def add_sources(chroot, tmp_dir, distribution, source):
         finally:
             os.chdir(old_dir)
 
-        with chroot.create_file('/etc/apt/sources.list', user='root') as f:
+        with chroot.create_file('/etc/apt/sources.list') as f:
             f.write("deb file://%s ./\n" % (tmp_dir))
             f.write("deb http://hq.in.vpac.org:9999/debian %s main\n" % distribution)
             if distribution == "sid":
                 distribution = "wheezy"
             f.write("deb http://code.vpac.org/debian/ %s main\n" % distribution)
 
-        with chroot.create_file('/etc/apt/preferences', user='root') as f:
+        with chroot.create_file('/etc/apt/preferences') as f:
             f.write("Package: *\n")
             f.write("Pin: release l=VPAC\n")
             f.write("Pin-Priority: 510\n")
@@ -140,13 +139,13 @@ def add_sources(chroot, tmp_dir, distribution, source):
         allow_unauthenticated = True
     elif source == "vpac":
 
-        with chroot.create_file('/etc/apt/sources.list', user='root') as f:
+        with chroot.create_file('/etc/apt/sources.list') as f:
             f.write("deb http://hq.in.vpac.org:9999/debian %s main\n" % distribution)
             if distribution == "sid":
                 distribution = "wheezy"
             f.write("deb http://code.vpac.org/debian/ %s main\n" % distribution)
 
-        with chroot.create_file('/etc/apt/preferences', user='root') as f:
+        with chroot.create_file('/etc/apt/preferences') as f:
             f.write("Package: *\n")
             f.write("Pin: release l=VPAC\n")
             f.write("Pin-Priority: 510\n")
@@ -157,15 +156,15 @@ def add_sources(chroot, tmp_dir, distribution, source):
 
         raise RuntimeError("Oops. Unknown source.")
 
-    chroot.check_call(["eatmydata", "apt-get", "update"], user='root')
+    chroot.check_call(["eatmydata", "apt-get", "update"])
 
     return allow_unauthenticated
 
 
 def install_mysql(chroot, sql_file, distribution):
-    chroot.check_call(["eatmydata", "apt-get", "install", "--yes", "mysql-server"], user='root')
+    chroot.check_call(["eatmydata", "apt-get", "install", "--yes", "mysql-server"])
 
-    with chroot.create_file('/etc/mysql/conf.d/karaage.cnf', user='root') as f:
+    with chroot.create_file('/etc/mysql/conf.d/karaage.cnf') as f:
         f.write("[mysqld]\n")
         f.write("character_set_server = utf8\n")
         f.write("default-storage-engine = innodb\n")
@@ -178,7 +177,7 @@ def install_mysql(chroot, sql_file, distribution):
         f.write("[client]\n")
         f.write("default-character-set = utf8\n")
 
-    chroot.check_call(["service", "mysql", "restart"], user='root')
+    chroot.check_call(["service", "mysql", "restart"])
 
     with open('mysql/setup.sql', 'r') as f:
         chroot.check_call(["mysql", "--user=root", "--password=mysqlsecret"], stdin=f)
@@ -187,24 +186,24 @@ def install_mysql(chroot, sql_file, distribution):
         with open(sql_file, 'r') as f:
             chroot.check_call(["mysql", "--user=root", "--password=mysqlsecret"], stdin=f)
 
-    tables = chroot.check_output(["mysql", "-B", "-N", "-e", "SHOW TABLES", "-pmysqlsecret", "karaage"], user='root')
+    tables = chroot.check_output(["mysql", "-B", "-N", "-e", "SHOW TABLES", "-pmysqlsecret", "karaage"])
     for table in tables.split("\n"):
         if table == "":
             continue
         sql = "ALTER TABLE %s CONVERT TO CHARACTER SET utf8 COLLATE utf8_general_ci" % table
-        chroot.check_call(["mysql", "-B", "-e", sql, "-pmysqlsecret", "karaage"], user='root')
+        chroot.check_call(["mysql", "-B", "-e", sql, "-pmysqlsecret", "karaage"])
 
 
 def install_openldap(chroot, ldif_file):
-    chroot.check_call(["eatmydata", "apt-get", "install", "--yes", "slapd", "ldap-utils"], user='root')
+    chroot.check_call(["eatmydata", "apt-get", "install", "--yes", "slapd", "ldap-utils"])
 
     # load ppolicy schema
     with open('openldap/ppolicy.ldif', 'r') as f:
-        chroot.check_call(["ldapadd", "-Y", "EXTERNAL", "-H", "ldapi:///"], stdin=f, user='root')
+        chroot.check_call(["ldapadd", "-Y", "EXTERNAL", "-H", "ldapi:///"], stdin=f)
 
     # load ppolicy module
     with open('openldap/ppolicy1.ldif', 'r') as f:
-        chroot.check_call(["ldapadd", "-Y", "EXTERNAL", "-H", "ldapi:///"], stdin=f, user='root')
+        chroot.check_call(["ldapadd", "-Y", "EXTERNAL", "-H", "ldapi:///"], stdin=f)
 
     if ldif_file is None:
 
@@ -214,83 +213,83 @@ def install_openldap(chroot, ldif_file):
 
         # configure default ppolicy policy
         with open('openldap/ppolicy3.ldif', 'r') as f:
-            chroot.check_call(["ldapadd", "-Y", "EXTERNAL", "-H", "ldapi:///"], stdin=f, user='root')
+            chroot.check_call(["ldapadd", "-Y", "EXTERNAL", "-H", "ldapi:///"], stdin=f)
 
     else:
 
         # reconfigure base DN
         with open(ldif_file + '-config.ldif', 'r') as f:
-            chroot.check_call(["ldapmodify", "-Y", "EXTERNAL", "-H", "ldapi:///"], stdin=f, user='root')
+            chroot.check_call(["ldapmodify", "-Y", "EXTERNAL", "-H", "ldapi:///"], stdin=f)
 
         # kill existing data
-        chroot.check_call(["service", "slapd", "stop"], user='root')
-        chroot.check_call(["rm", "-rf", "/var/lib/ldap/"], user='root')
-        chroot.check_call(["mkdir", "/var/lib/ldap/"], user='root')
+        chroot.check_call(["service", "slapd", "stop"])
+        chroot.check_call(["rm", "-rf", "/var/lib/ldap/"])
+        chroot.check_call(["mkdir", "/var/lib/ldap/"])
         with open('/dev/null', 'r') as f:
-            chroot.check_call(["slapadd"], stdin=f, user='root')
-        chroot.check_call(["slapindex"], user='root')
-        chroot.check_call(["chown", "openldap:openldap", "-R", "/var/lib/ldap/"], user='root')
-        chroot.check_call(["service", "slapd", "start"], user='root')
+            chroot.check_call(["slapadd"], stdin=f)
+        chroot.check_call(["slapindex"])
+        chroot.check_call(["chown", "openldap:openldap", "-R", "/var/lib/ldap/"])
+        chroot.check_call(["service", "slapd", "start"])
 
         # load default ppolicy policy
-        chroot.check_call(["service", "slapd", "stop"], user='root')
+        chroot.check_call(["service", "slapd", "stop"])
         with open(ldif_file + '-ppolicy2.ldif', 'r') as f:
-            chroot.check_call(["slapadd"], stdin=f, user='root')
-        chroot.check_call(["slapindex"], user='root')
-        chroot.check_call(["chown", "openldap:openldap", "-R", "/var/lib/ldap/"], user='root')
-        chroot.check_call(["service", "slapd", "start"], user='root')
+            chroot.check_call(["slapadd"], stdin=f)
+        chroot.check_call(["slapindex"])
+        chroot.check_call(["chown", "openldap:openldap", "-R", "/var/lib/ldap/"])
+        chroot.check_call(["service", "slapd", "start"])
 
         # configure default ppolicy policy
         with open(ldif_file + '-ppolicy3.ldif', 'r') as f:
-            chroot.check_call(["ldapadd", "-Y", "EXTERNAL", "-H", "ldapi:///"], stdin=f, user='root')
+            chroot.check_call(["ldapadd", "-Y", "EXTERNAL", "-H", "ldapi:///"], stdin=f)
 
         # load VPAC data
-        chroot.check_call(["service", "slapd", "stop"], user='root')
+        chroot.check_call(["service", "slapd", "stop"])
         with open(ldif_file + '.ldif', 'r') as f:
-            chroot.check_call(["slapadd"], stdin=f, user='root')
-        chroot.check_call(["slapindex"], user='root')
-        chroot.check_call(["chown", "openldap:openldap", "-R", "/var/lib/ldap/"], user='root')
-        chroot.check_call(["service", "slapd", "start"], user='root')
+            chroot.check_call(["slapadd"], stdin=f)
+        chroot.check_call(["slapindex"])
+        chroot.check_call(["chown", "openldap:openldap", "-R", "/var/lib/ldap/"])
+        chroot.check_call(["service", "slapd", "start"])
 
 def install_389(chroot, ldif_file):
-    chroot.check_call(["eatmydata", "apt-get", "install", "--yes", "389-ds-base", "ldap-utils"], user='root')
-    chroot.check_call(["setup-ds", "-s", "-f", "389/setup.inf"], user='root')
+    chroot.check_call(["eatmydata", "apt-get", "install", "--yes", "389-ds-base", "ldap-utils"])
+    chroot.check_call(["setup-ds", "-s", "-f", "389/setup.inf"])
 #    with open('389/app.ldif', 'r') as f:
-#        chroot.check_call(["ldapmodify", "-D", "cn=Directory Manager", "-w", "slapsecret"], stdin=f, user='root')
+#        chroot.check_call(["ldapmodify", "-D", "cn=Directory Manager", "-w", "slapsecret"], stdin=f)
 
 def install_karaage(chroot, allow_unauthenticated):
     args = []
     if allow_unauthenticated:
         args += ["--allow-unauthenticated"]
 
-    chroot.check_call(["eatmydata", "apt-get", "install", "--yes", "libjs-jquery-ui", "python-mysqldb"], user='root')
-    chroot.check_call(["eatmydata", "apt-get", "install", "--yes", "apache2", "libapache2-mod-wsgi" ], user='root')
-#    chroot.check_call(["eatmydata", "apt-get", "install", "--yes", "karaage3"] + args, user='root')
-    chroot.check_call(["eatmydata", "apt-get", "install", "--yes", "karaage3-admin", "karaage3-registration"] + args, user='root')
-    chroot.check_call(["eatmydata", "apt-get", "install", "--yes", "karaage3-celery"] + args, user='root')
+    chroot.check_call(["eatmydata", "apt-get", "install", "--yes", "libjs-jquery-ui", "python-mysqldb"])
+    chroot.check_call(["eatmydata", "apt-get", "install", "--yes", "apache2", "libapache2-mod-wsgi" ])
+#    chroot.check_call(["eatmydata", "apt-get", "install", "--yes", "karaage3"] + args)
+    chroot.check_call(["eatmydata", "apt-get", "install", "--yes", "karaage3-admin", "karaage3-registration"] + args)
+    chroot.check_call(["eatmydata", "apt-get", "install", "--yes", "karaage3-celery"] + args)
 
 def config_karaage(chroot, karaage_file, distribution):
     chroot.copy(karaage_file, "/etc/karaage/global_settings.py", user="root")
-    chroot.check_call(["kg_set_secret_key"], user='root')
-    chroot.check_call(["chmod", "a+r", "/etc/karaage/global_settings.py"], user='root')
+    chroot.check_call(["kg_set_secret_key"])
+    chroot.check_call(["chmod", "a+r", "/etc/karaage/global_settings.py"])
     if distribution == 'sid':
-        chroot.check_call(["ln", "-s", "/etc/karaage/kgadmin-apache.conf", "/etc/apache2/conf-available/"], user='root')
-        chroot.check_call(["ln", "-s", "/etc/karaage/kgreg-apache.conf", "/etc/apache2/conf-available/"], user='root')
-        chroot.check_call(["a2enconf", "kgadmin-apache"], user='root')
-        chroot.check_call(["a2enconf", "kgreg-apache"], user='root')
+        chroot.check_call(["ln", "-s", "/etc/karaage/kgadmin-apache.conf", "/etc/apache2/conf-available/"])
+        chroot.check_call(["ln", "-s", "/etc/karaage/kgreg-apache.conf", "/etc/apache2/conf-available/"])
+        chroot.check_call(["a2enconf", "kgadmin-apache"])
+        chroot.check_call(["a2enconf", "kgreg-apache"])
     elif distribution == "squeeze" or distribution == "wheezy":
-        chroot.check_call(["ln", "-s", "/etc/karaage/kgadmin-apache.conf", "/etc/apache2/conf.d/"], user='root')
-        chroot.check_call(["ln", "-s", "/etc/karaage/kgreg-apache.conf", "/etc/apache2/conf.d/"], user='root')
+        chroot.check_call(["ln", "-s", "/etc/karaage/kgadmin-apache.conf", "/etc/apache2/conf.d/"])
+        chroot.check_call(["ln", "-s", "/etc/karaage/kgreg-apache.conf", "/etc/apache2/conf.d/"])
     else:
         raise RuntimeError("Unknown distribution")
 
-    chroot.check_call(["kg-manage", "syncdb", "--noinput"], user='root')
-    chroot.check_call(["kg-manage", "migrate", "--all", "--traceback"], user='root')
-    chroot.check_call(["sed", "-i", "s/^\(LDAP_PEOPLE *= *\).*$/\\1True/", "/etc/karaage/global_settings.py"], user='root')
-    chroot.check_call(["kg-manage", "migrate_ldap", "--traceback"], user='root')
+    chroot.check_call(["kg-manage", "syncdb", "--noinput"])
+    chroot.check_call(["kg-manage", "migrate", "--all", "--traceback"])
+    chroot.check_call(["sed", "-i", "s/^\(LDAP_PEOPLE *= *\).*$/\\1True/", "/etc/karaage/global_settings.py"])
+    chroot.check_call(["kg-manage", "migrate_ldap", "--traceback"])
 
-    chroot.check_call(["service", "apache2", "reload"], user='root')
-    chroot.check_call(["service", "python-karaage-celery", "restart"], user='root')
+    chroot.check_call(["service", "apache2", "reload"])
+    chroot.check_call(["service", "python-karaage-celery", "restart"])
     chroot.check_call(["kg-manage", "kgcreatesuperuser",
         "--username=kgadmin", "--email=kgadmin@example.org", "--password=1234",
         "--short_name=karaage", "--full_name=admin", "--institute=test"],
@@ -298,8 +297,8 @@ def config_karaage(chroot, karaage_file, distribution):
 
 
 def remove_karaage(chroot):
-    chroot.check_call(["eatmydata", "apt-get", "remove", "--purge", "--yes", "karaage3"], user='root')
-    chroot.check_call(["eatmydata", "apt-get", "autoremove", "--purge", "--yes" ], user='root')
+    chroot.check_call(["eatmydata", "apt-get", "remove", "--purge", "--yes", "karaage3"])
+    chroot.check_call(["eatmydata", "apt-get", "autoremove", "--purge", "--yes" ])
 
 
 def test_karaage(chroot, tmp_dir, args):
@@ -320,7 +319,7 @@ def test_karaage(chroot, tmp_dir, args):
         print("")
         print("Configured. tmp_dir=%s" % tmp_dir)
         print("Entering shell, please exit to finish.")
-        chroot.check_call(["bash"], user='root', env=interactive_env)
+        chroot.check_call(["bash"], env=interactive_env)
     if not args.keep:
         remove_karaage(chroot)
 
@@ -401,7 +400,7 @@ def main():
                     print("Exception occured. tmp_dir=%s" % tmp_dir)
                     print(e)
                     print("Entering shell, please exit to finish.")
-                    chroot.check_call(["bash"], user='root', env=interactive_env)
+                    chroot.check_call(["bash"], env=interactive_env)
                 raise
 
     finally:
