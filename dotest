@@ -327,17 +327,12 @@ def test_karaage(chroot, tmp_dir, args):
 
 class Schroot(schroot.chroot.SchrootChroot):
     def _command(self, cmd, kwargs):
-        preserve_environment = kwargs.pop("preserve_environment", True)
-        kwargs["preserve_environment"] = preserve_environment
         kwargs["env"] = kwargs.pop("env", env)
         return super(Schroot, self)._command(cmd, kwargs)
 
 
-class LocalRoot(schroot.chroot.SchrootChroot):
-    def _command(self, cmd, kwargs):
-        user = kwargs.pop("user", None)
-        preserve_environment = kwargs.pop("preserve_environment", True)
-
+class LocalRoot(Schroot):
+    def _command_prefix(self, user, preserve_environment):
         command = []
 
         if user:
@@ -347,9 +342,6 @@ class LocalRoot(schroot.chroot.SchrootChroot):
                 command += ['-E']
             command += ['--']
 
-        command += cmd
-
-        logger.debug(" ".join((str(x) for x in command)))
         return command
 
     def start(self, chroot_name):
