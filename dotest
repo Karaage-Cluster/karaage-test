@@ -22,6 +22,7 @@ import argparse
 import schroot
 import logging.config
 import logging
+import subprocess
 
 from contextlib import contextmanager
 try:
@@ -75,6 +76,31 @@ env.update({
 })
 
 
+def call(cmd, **kwargs):
+    logger.debug(" ".join(cmd))
+    return subprocess.check_call(cmd, **kwargs)
+
+
+def generate_keys():
+    if not os.path.isdir("keys"):
+        os.mkdir("keys")
+
+    if os.path.isfile("keys/secring.gpg") and \
+            os.path.isfile("keys/pubring.gpg"):
+        return
+
+    with tempfile.NamedTemporaryFile() as f:
+        f.write("Key-Type: RSA\n")
+        f.write("Key-Length: 1024\n")
+        f.write("Name-Real: Karaage Tester\n")
+        f.write("Name-Email: karaage@lists.vpac.org\n")
+        f.write("Expire-Date: 0\n")
+        f.write("%%secring %s\n" % "keys/secring.gpg")
+        f.write("%%pubring %s\n" % "keys/pubring.gpg")
+        f.write("%commit\n")
+        f.flush()
+        call(["gpg", "--no-default-keyring", "--batch", "--gen-key", f.name])
+
 
 def setup(chroot, distribution):
     chroot.check_call(["apt-get", "install", "--yes", "eatmydata"], user='root')
@@ -109,6 +135,51 @@ def build_git_package(chroot, src, name, branch="master"):
         os.chdir(old_dir)
 
 
+def make_debian_archive(chroot, tmp_dir, dst_dir):
+    homedir = os.path.join(tmp_dir, "tmphome")
+    release_file = os.path.join(dst_dir, "Release")
+
+    with tempfile.NamedTemporaryFile() as f:
+        f.write('Dir {\n')
+        f.write('   ArchiveDir "%s"\n' % dst_dir)
+        f.write('}\n')
+        f.write('Default {\n')
+        f.write('    Packages::Compress ". gzip";\n')
+        f.write('    Sources::Compress ". gzip";\n')
+        f.write('}')
+        f.write('BinDirectory "%s" {\n' % dst_dir)
+        f.write('    Packages "Packages";\n')
+        f.write('    Sources "Sources";\n')
+        f.write('}\n')
+        f.write('APT::FTPArchive::Release {\n')
+        f.write('    Origin "karaage-test-archive";\n')
+        f.write('    Label "karaage-test-archive";\n')
+        f.write('    Suite "invalid";\n')
+        f.write('    Codename "invalid";\n')
+        f.write('    Description "Karaager test Temporary Archive";\n')
+        f.write('}\n')
+        f.flush()
+        call(["apt-ftparchive", "generate", f.name])
+        with open(release_file, 'w') as f2:
+            call(
+                ["apt-ftparchive", "-c", f.name, "release", dst_dir],
+                stdout=f2)
+
+    if not os.path.isdir(homedir):
+        os.mkdir(homedir)
+
+    call([
+        "gpg", "--yes", "--no-default-keyring",
+        "--homedir", homedir,
+        "--secret-keyring", "keys/secring.gpg",
+        "--keyring", "keys/pubring.gpg",
+        "--default-key", "Karaage Tester",
+        "-abs", "-o", release_file + ".gpg",
+        release_file])
+
+    chroot.check_call(["apt-key", "add", "keys/pubring.gpg"], user="root")
+
+
 def add_sources(chroot, tmp_dir, distribution, source):
     if source == "local":
         old_dir = os.getcwd()
@@ -118,11 +189,9 @@ def add_sources(chroot, tmp_dir, distribution, source):
             build_git_package(chroot, "file:///home/brian/tree/django/karaage/karaage", "karaage3")
             build_git_package(chroot, "file:///home/brian/tree/django/karaage/karaage-admin", "karaage3-admin")
             build_git_package(chroot, "file:///home/brian/tree/django/karaage/karaage-registration", "karaage3-registration")
-
-            with open('Packages', 'w') as f:
-                chroot.check_call(["dpkg-scanpackages", "."], stdout=f)
         finally:
             os.chdir(old_dir)
+        make_debian_archive(chroot, tmp_dir, tmp_dir)
 
         with chroot.create_file('/etc/apt/sources.list', user='root') as f:
             f.write("deb file://%s ./\n" % (tmp_dir))
@@ -141,7 +210,6 @@ def add_sources(chroot, tmp_dir, distribution, source):
             f.write("Pin-Priority: 520\n")
             f.write("\n")
 
-        allow_unauthenticated = True
     elif source == "github":
         old_dir = os.getcwd()
         try:
@@ -150,11 +218,9 @@ def add_sources(chroot, tmp_dir, distribution, source):
             build_git_package(chroot, "git://github.com/Karaage-Cluster/karaage.git", "karaage")
             build_git_package(chroot, "git://github.com/Karaage-Cluster/karaage-admin.git", "karaage-admin")
             build_git_package(chroot, "git://github.com/Karaage-Cluster/karaage-registration.git", "karaage-registration")
-
-            with open('Packages', 'w') as f:
-                chroot.check_call(["dpkg-scanpackages", "."], stdout=f)
         finally:
             os.chdir(old_dir)
+        make_debian_archive(chroot, tmp_dir, tmp_dir)
 
         with chroot.create_file('/etc/apt/sources.list', user='root') as f:
             f.write("deb file://%s ./\n" % (tmp_dir))
@@ -173,7 +239,6 @@ def add_sources(chroot, tmp_dir, distribution, source):
             f.write("Pin-Priority: 520\n")
             f.write("\n")
 
-        allow_unauthenticated = True
     elif source == "vpac":
 
         with chroot.create_file('/etc/apt/sources.list', user='root') as f:
@@ -188,14 +253,11 @@ def add_sources(chroot, tmp_dir, distribution, source):
             f.write("Pin-Priority: 510\n")
             f.write("\n")
 
-        allow_unauthenticated = False
     else:
 
         raise RuntimeError("Oops. Unknown source.")
 
     chroot.check_call(["eatmydata", "apt-get", "update"], user='root')
-
-    return allow_unauthenticated
 
 
 def install_mysql(chroot, sql_file, distribution):
@@ -294,10 +356,8 @@ def install_389(chroot, ldif_file):
 #    with open('389/app.ldif', 'r') as f:
 #        chroot.check_call(["ldapmodify", "-D", "cn=Directory Manager", "-w", "slapsecret"], stdin=f, user='root')
 
-def install_karaage(chroot, allow_unauthenticated):
+def install_karaage(chroot):
     args = []
-    if allow_unauthenticated:
-        args += ["--allow-unauthenticated"]
 
     chroot.check_call(["eatmydata", "apt-get", "install", "--yes", "libjs-jquery-ui", "python-mysqldb"], user='root')
     chroot.check_call(["eatmydata", "apt-get", "install", "--yes", "apache2", "libapache2-mod-wsgi" ], user='root')
@@ -340,7 +400,7 @@ def remove_karaage(chroot):
 
 def test_karaage(chroot, tmp_dir, args):
     setup(chroot, args.distribution)
-    allow_unauthenticated = add_sources(chroot, tmp_dir, args.distribution, args.source)
+    add_sources(chroot, tmp_dir, args.distribution, args.source)
     install_mysql(chroot, args.sql, args.distribution)
     if args.ldap == 'openldap':
         install_openldap(chroot, args.ldif)
@@ -350,7 +410,7 @@ def test_karaage(chroot, tmp_dir, args):
         karaage_file = args.karaage or "389/global_settings.py"
     else:
         raise RuntimeError("Unknown ldap server '%s'" % args.ldap)
-    install_karaage(chroot, allow_unauthenticated)
+    install_karaage(chroot)
     config_karaage(chroot, karaage_file, args.distribution)
     if args.shell:
         print("")
@@ -417,6 +477,8 @@ def main():
     parser.add_argument("-k", "--karaage", help="Karaage config file to use")
     parser.add_argument("--keep", action="store_true", help="Don't uninstall everything on completion")
     args = parser.parse_args()
+
+    generate_keys()
 
     tmp_dir = None
     try:
