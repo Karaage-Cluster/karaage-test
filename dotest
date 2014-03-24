@@ -24,8 +24,44 @@ import logging.config
 import logging
 
 from contextlib import contextmanager
+try:
+    from colorlog import ColoredFormatter
+except ImportError:
+    ColoredFormatter = None
+
 
 logger = logging.getLogger(__name__)
+
+
+def setup_logging():
+    if ColoredFormatter is not None:
+        formatter = ColoredFormatter(
+            "\n%(log_color)s%(asctime)s %(levelname)-8s "
+            "%(blue)s%(message)s",
+            datefmt="%m-%d %H:%M",
+            reset=True,
+            log_colors={
+                'DEBUG':    'cyan',
+                'INFO':     'green',
+                'WARNING':  'yellow',
+                'ERROR':    'red',
+                'CRITICAL': 'red',
+            }
+        )
+    else:
+        formatter = logging.Formatter(
+            "\n%(asctime)s %(levelname)-8s "
+            "%(message)s",
+            datefmt="%m-%d %H:%M",
+        )
+
+    console = logging.StreamHandler()
+    console.setLevel(logging.DEBUG)
+    console.setFormatter(formatter)
+
+    root = logging.getLogger('')
+    root.setLevel(logging.DEBUG)
+    root.addHandler(console)
 
 
 interactive_env = {
@@ -367,7 +403,7 @@ def root(localhost, name):
 
 
 def main():
-    logging.config.fileConfig("dotest.cfg")
+    setup_logging()
 
     parser = argparse.ArgumentParser(description='Test karaage Debian packages.')
     parser.add_argument("-d", "--distribution", choices=['squeeze', 'wheezy', 'sid'], default="wheezy", help="Which distribution?")
@@ -381,8 +417,6 @@ def main():
     parser.add_argument("-k", "--karaage", help="Karaage config file to use")
     parser.add_argument("--keep", action="store_true", help="Don't uninstall everything on completion")
     args = parser.parse_args()
-
-    logging.basicConfig(level=logging.DEBUG)
 
     tmp_dir = None
     try:
