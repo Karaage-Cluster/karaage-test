@@ -542,13 +542,13 @@ class LocalRoot(Schroot):
 
 
 @contextmanager
-def root(localhost, name):
+def root(localhost, chroot_name):
     if localhost:
         ch = LocalRoot()
     else:
         ch = Schroot()
     try:
-        ch.start(name)
+        ch.start(chroot_name)
         yield ch
     finally:
         ch.end()
@@ -563,10 +563,16 @@ def main():
         "-d", "--distribution",
         choices=['squeeze', 'wheezy', 'sid'], default="wheezy",
         help="Which distribution?")
-    parser.add_argument(
+
+    group = parser.add_mutually_exclusive_group(required=False)
+    group.add_argument(
+        "--chroot",
+        help="Name of chroot to use. Default is distribution.")
+    group.add_argument(
         "--localhost",
         action="store_true",
         help="Act on local system, not schroot (potentially dangerous)")
+
     parser.add_argument(
         "-l", "--ldap",
         choices=['openldap', '389'], default="openldap",
@@ -601,11 +607,13 @@ def main():
         help="Don't uninstall everything on completion")
     args = parser.parse_args()
 
+    chroot_name = args.chroot or args.distribution
+
     generate_keys()
 
     with temp_dir() as tmp_dir:
 
-        with root(args.localhost, args.distribution) as chroot:
+        with root(args.localhost, chroot_name) as chroot:
             try:
                 test_karaage(chroot, tmp_dir, args)
             except Exception, e:
