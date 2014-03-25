@@ -41,8 +41,7 @@ logger = logging.getLogger(__name__)
 def setup_logging():
     if ColoredFormatter is not None:
         formatter = ColoredFormatter(
-            "\n%(log_color)s%(asctime)s %(levelname)-8s "
-            "%(blue)s%(message)s",
+            "\n%(log_color)s%(asctime)s %(levelname)-8s %(message)s",
             datefmt="%m-%d %H:%M",
             reset=True,
             log_colors={
