@@ -81,6 +81,27 @@ def call(cmd, **kwargs):
     return subprocess.check_call(cmd, **kwargs)
 
 
+@contextmanager
+def temp_dir():
+    tmp_dir = tempfile.mkdtemp()
+    cur_dir = os.getcwd()
+
+    yield tmp_dir
+
+    os.chdir(cur_dir)
+    shutil.rmtree(tmp_dir)
+
+
+@contextmanager
+def chdir(directory):
+    old_dir = os.getcwd()
+    try:
+        os.chdir(directory)
+        yield old_dir
+    finally:
+        os.chdir(old_dir)
+
+
 def generate_keys():
     if not os.path.isdir("keys"):
         os.mkdir("keys")
@@ -134,15 +155,13 @@ def setup(chroot, distribution):
         ["debconf-set-selections", "debconf.conf"], user='root')
 
 
-def build_git_package(chroot, src, name, branch="master"):
-    old_dir = os.getcwd()
-    try:
-        chroot.check_call(["git", "clone", "--branch", branch, src, name])
-        os.chdir(name)
+def build_git_package(chroot, src, dst_dir, name, branch="master"):
+    dst_path = os.path.join(dst_dir, name)
+    chroot.check_call(["git", "clone", "--branch", branch, src, dst_path])
+
+    with chdir(dst_path):
         chroot.check_call(["dpkg-checkbuilddeps"])
         chroot.check_call(["fakeroot", "debian/rules", "binary"])
-    finally:
-        os.chdir(old_dir)
 
 
 def make_debian_archive(chroot, tmp_dir, dst_dir):
@@ -192,27 +211,26 @@ def make_debian_archive(chroot, tmp_dir, dst_dir):
 
 def add_sources(chroot, tmp_dir, distribution, source):
     if source == "local":
-        old_dir = os.getcwd()
-        try:
-            os.chdir(tmp_dir)
-            build_git_package(
-                chroot,
-                "file:///home/brian/tree/django/django-tldap/django-tldap",
-                "django-tldap")
-            build_git_package(
-                chroot,
-                "file:///home/brian/tree/django/karaage/karaage",
-                "karaage3")
-            build_git_package(
-                chroot,
-                "file:///home/brian/tree/django/karaage/karaage-admin",
-                "karaage3-admin")
-            build_git_package(
-                chroot,
-                "file:///home/brian/tree/django/karaage/karaage-registration",
-                "karaage3-registration")
-        finally:
-            os.chdir(old_dir)
+        build_git_package(
+            chroot,
+            "file:///home/brian/tree/django/django-tldap/django-tldap",
+            tmp_dir,
+            "django-tldap")
+        build_git_package(
+            chroot,
+            "file:///home/brian/tree/django/karaage/karaage",
+            tmp_dir,
+            "karaage3")
+        build_git_package(
+            chroot,
+            "file:///home/brian/tree/django/karaage/karaage-admin",
+            tmp_dir,
+            "karaage3-admin")
+        build_git_package(
+            chroot,
+            "file:///home/brian/tree/django/karaage/karaage-registration",
+            tmp_dir,
+            "karaage3-registration")
         make_debian_archive(chroot, tmp_dir, tmp_dir)
 
         with chroot.create_file('/etc/apt/sources.list', user='root') as f:
@@ -238,27 +256,26 @@ def add_sources(chroot, tmp_dir, distribution, source):
             f.write("\n")
 
     elif source == "github":
-        old_dir = os.getcwd()
-        try:
-            os.chdir(tmp_dir)
-            build_git_package(
-                chroot,
-                "git://github.com/VPAC/django-tldap.git",
-                "django-tldap")
-            build_git_package(
-                chroot,
-                "git://github.com/Karaage-Cluster/karaage.git",
-                "karaage")
-            build_git_package(
-                chroot,
-                "git://github.com/Karaage-Cluster/karaage-admin.git",
-                "karaage-admin")
-            build_git_package(
-                chroot,
-                "git://github.com/Karaage-Cluster/karaage-registration.git",
-                "karaage-registration")
-        finally:
-            os.chdir(old_dir)
+        build_git_package(
+            chroot,
+            "git://github.com/VPAC/django-tldap.git",
+            tmp_dir,
+            "django-tldap")
+        build_git_package(
+            chroot,
+            "git://github.com/Karaage-Cluster/karaage.git",
+            tmp_dir,
+            "karaage")
+        build_git_package(
+            chroot,
+            "git://github.com/Karaage-Cluster/karaage-admin.git",
+            tmp_dir,
+            "karaage-admin")
+        build_git_package(
+            chroot,
+            "git://github.com/Karaage-Cluster/karaage-registration.git",
+            tmp_dir,
+            "karaage-registration")
         make_debian_archive(chroot, tmp_dir, tmp_dir)
 
         with chroot.create_file('/etc/apt/sources.list', user='root') as f:
@@ -622,9 +639,7 @@ def main():
 
     generate_keys()
 
-    tmp_dir = None
-    try:
-        tmp_dir = tempfile.mkdtemp()
+    with temp_dir() as tmp_dir:
 
         with root(args.localhost, args.distribution) as chroot:
             try:
@@ -639,13 +654,6 @@ def main():
                         ["bash"], user='root', env=interactive_env)
                 raise
 
-    finally:
-        try:
-            if tmp_dir is not None:
-                shutil.rmtree(tmp_dir)  # delete directory
-        except OSError, e:
-            if e.errno != 2:  # code 2 - no such file or directory
-                raise
 
 if __name__ == "__main__":
     main()
