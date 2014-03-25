@@ -164,9 +164,18 @@ def build_git_package(chroot, src, dst_dir, name, branch="master"):
         chroot.check_call(["fakeroot", "debian/rules", "binary"])
 
 
-def make_debian_archive(chroot, tmp_dir, dst_dir):
+def make_debian_repo(chroot, tmp_dir, src_dir, dst_dir):
     homedir = os.path.join(tmp_dir, "tmphome")
     release_file = os.path.join(dst_dir, "Release")
+
+    logger.debug("making temp Debian repository at %s" % dst_dir)
+
+    for name in os.listdir(src_dir):
+        if name.endswith(".deb"):
+            src_file = os.path.join(src_dir, name)
+            dst_file = os.path.join(dst_dir, name)
+            logger.debug("copying %s to %s" % (src_file, dst_file))
+            shutil.copyfile(src_file, dst_file)
 
     with tempfile.NamedTemporaryFile() as f:
         f.write('Dir {\n')
@@ -210,32 +219,41 @@ def make_debian_archive(chroot, tmp_dir, dst_dir):
 
 
 def add_sources(chroot, tmp_dir, distribution, source):
+    build_dir = os.path.join(tmp_dir, "build")
+    repo_dir = os.path.join(tmp_dir, "repo")
+
+    if not os.path.isdir(build_dir):
+        os.mkdir(build_dir)
+
+    if not os.path.isdir(repo_dir):
+        os.mkdir(repo_dir)
+
     if source == "local":
         build_git_package(
             chroot,
             "file:///home/brian/tree/django/django-tldap/django-tldap",
-            tmp_dir,
+            build_dir,
             "django-tldap")
         build_git_package(
             chroot,
             "file:///home/brian/tree/django/karaage/karaage",
-            tmp_dir,
+            build_dir,
             "karaage3")
         build_git_package(
             chroot,
             "file:///home/brian/tree/django/karaage/karaage-admin",
-            tmp_dir,
+            build_dir,
             "karaage3-admin")
         build_git_package(
             chroot,
             "file:///home/brian/tree/django/karaage/karaage-registration",
-            tmp_dir,
+            build_dir,
             "karaage3-registration")
-        make_debian_archive(chroot, tmp_dir, tmp_dir)
+        make_debian_repo(chroot, tmp_dir, build_dir, repo_dir)
 
         with chroot.create_file('/etc/apt/sources.list', user='root') as f:
             f.write(
-                "deb file://%s ./\n" % (tmp_dir))
+                "deb file://%s ./\n" % (repo_dir))
             f.write(
                 "deb http://hq.in.vpac.org:9999/debian %s main\n"
                 % distribution)
@@ -259,28 +277,28 @@ def add_sources(chroot, tmp_dir, distribution, source):
         build_git_package(
             chroot,
             "git://github.com/VPAC/django-tldap.git",
-            tmp_dir,
+            build_dir,
             "django-tldap")
         build_git_package(
             chroot,
             "git://github.com/Karaage-Cluster/karaage.git",
-            tmp_dir,
+            build_dir,
             "karaage")
         build_git_package(
             chroot,
             "git://github.com/Karaage-Cluster/karaage-admin.git",
-            tmp_dir,
+            build_dir,
             "karaage-admin")
         build_git_package(
             chroot,
             "git://github.com/Karaage-Cluster/karaage-registration.git",
-            tmp_dir,
+            build_dir,
             "karaage-registration")
-        make_debian_archive(chroot, tmp_dir, tmp_dir)
+        make_debian_repo(chroot, tmp_dir, build_dir, repo_dir)
 
         with chroot.create_file('/etc/apt/sources.list', user='root') as f:
             f.write(
-                "deb file://%s ./\n" % (tmp_dir))
+                "deb file://%s ./\n" % (repo_dir))
             f.write(
                 "deb http://hq.in.vpac.org:9999/debian %s main\n"
                 % distribution)
