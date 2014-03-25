@@ -23,6 +23,8 @@ import schroot
 import logging.config
 import logging
 import subprocess
+from debian import changelog
+from email.Utils import formatdate
 
 from contextlib import contextmanager
 try:
@@ -158,6 +160,24 @@ def setup(chroot, distribution):
 def build_git_package(chroot, src, dst_dir, name, branch="master"):
     dst_path = os.path.join(dst_dir, name)
     chroot.check_call(["git", "clone", "--branch", branch, src, dst_path])
+
+    changelog_file = os.path.join(dst_path, "debian/changelog")
+    cl = changelog.Changelog(open(changelog_file))
+    version = cl.get_version()
+    version = str(version) + "+git.1"
+
+    cl.new_block(
+        package=cl.package,
+        version=version,
+        distributions="UNRELEASED",
+        urgency="low",
+        author="Karaage Testing <karaage@lists.vpac.org>",
+        date=formatdate(),
+    )
+    cl.add_change('')
+    cl.add_change("  * Rebuild for Karaage testing. Not for production use.")
+    cl.add_change('')
+    cl.write_to_open_file(open(changelog_file, "w"))
 
     with chdir(dst_path):
         chroot.check_call(["dpkg-checkbuilddeps"])
