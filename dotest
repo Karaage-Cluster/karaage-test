@@ -128,6 +128,9 @@ def generate_keys():
 
 def setup(chroot, distribution, config):
     chroot.check_call(
+        ["chmod", "1777", "/dev/shm"], user='root')
+
+    chroot.check_call(
         ["apt-get", "install", "--yes", "eatmydata"], user='root')
 
     with chroot.create_file('/etc/apt/sources.list', user='root') as f:
