@@ -79,7 +79,8 @@ LDAP = {
         'URI': 'ldap://localhost',
         'USER': 'cn=Directory Manager',
         'PASSWORD': 'slapdsecret',
-        'USE_TLS': False,
+        'REQUIRE_TLS': False,
+        'START_TLS': False,
         'TLS_CA' : None,
     }
 }
