@@ -313,13 +313,18 @@ def install_mysql(chroot, sql_file, distribution):
             chroot.check_call(
                 ["mysql", "--user=root", "--password=mysqlsecret"], stdin=f)
 
+    sql = "DROP TABLE projectreports_projectsurvey;"
+    chroot.check_call(
+        ["mysql", "-B", "-e", sql, "-pmysqlsecret", "karaage"],
+        user='root')
+
     tables = chroot.check_output(
         ["mysql", "-B", "-N", "-e", "SHOW TABLES", "-pmysqlsecret", "karaage"],
         user='root')
     for table in tables.split("\n"):
         if table == "":
             continue
-        sql = "ALTER TABLE %s " \
+        sql = "SET foreign_key_checks = 0; ALTER TABLE %s " \
             "CONVERT TO CHARACTER SET utf8 COLLATE utf8_general_ci" % table
         chroot.check_call(
             ["mysql", "-B", "-e", sql, "-pmysqlsecret", "karaage"],
