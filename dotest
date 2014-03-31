@@ -332,12 +332,14 @@ def install_openldap(chroot, ldif_file):
         user='root')
 
     # load ppolicy schema
+    logger.debug("Importing %s" % "openldap/ppolicy.ldif")
     with open('openldap/ppolicy.ldif', 'r') as f:
         chroot.check_call(
             ["ldapadd", "-Y", "EXTERNAL", "-H", "ldapi:///"],
             stdin=f, user='root')
 
     # load ppolicy module
+    logger.debug("Importing %s" % "openldap/ppolicy1.ldif")
     with open('openldap/ppolicy1.ldif', 'r') as f:
         chroot.check_call(
             ["ldapadd", "-Y", "EXTERNAL", "-H", "ldapi:///"],
@@ -346,6 +348,7 @@ def install_openldap(chroot, ldif_file):
     if ldif_file is None:
 
         # load default ppolicy policy
+        logger.debug("Importing %s" % "openldap/ppolicy2.ldif")
         with open('openldap/ppolicy2.ldif', 'r') as f:
             chroot.check_call(
                 ["ldapadd", "-x", "-H", "ldapi:///",
@@ -353,6 +356,7 @@ def install_openldap(chroot, ldif_file):
                 stdin=f)
 
         # configure default ppolicy policy
+        logger.debug("Importing %s" % "openldap/ppolicy3.ldif")
         with open('openldap/ppolicy3.ldif', 'r') as f:
             chroot.check_call(
                 ["ldapadd", "-Y", "EXTERNAL", "-H", "ldapi:///"],
@@ -361,6 +365,7 @@ def install_openldap(chroot, ldif_file):
     else:
 
         # reconfigure base DN
+        logger.debug("Importing %s" % ldif_file + '-config.ldif')
         with open(ldif_file + '-config.ldif', 'r') as f:
             chroot.check_call(
                 ["ldapmodify", "-Y", "EXTERNAL", "-H", "ldapi:///"],
@@ -370,6 +375,7 @@ def install_openldap(chroot, ldif_file):
         chroot.check_call(["service", "slapd", "stop"], user='root')
         chroot.check_call(["rm", "-rf", "/var/lib/ldap/"], user='root')
         chroot.check_call(["mkdir", "/var/lib/ldap/"], user='root')
+        logger.debug("Importing %s" % "/dev/null")
         with open('/dev/null', 'r') as f:
             chroot.check_call(["slapadd"], stdin=f, user='root')
         chroot.check_call(["slapindex"], user='root')
@@ -380,6 +386,7 @@ def install_openldap(chroot, ldif_file):
 
         # load default ppolicy policy
         chroot.check_call(["service", "slapd", "stop"], user='root')
+        logger.debug("Importing %s" % ldif_file + '-ppolicy2.ldif')
         with open(ldif_file + '-ppolicy2.ldif', 'r') as f:
             chroot.check_call(["slapadd"], stdin=f, user='root')
         chroot.check_call(["slapindex"], user='root')
@@ -389,6 +396,7 @@ def install_openldap(chroot, ldif_file):
         chroot.check_call(["service", "slapd", "start"], user='root')
 
         # configure default ppolicy policy
+        logger.debug("Importing %s" % ldif_file + '-ppolicy3.ldif')
         with open(ldif_file + '-ppolicy3.ldif', 'r') as f:
             chroot.check_call(
                 ["ldapadd", "-Y", "EXTERNAL", "-H", "ldapi:///"],
@@ -396,6 +404,7 @@ def install_openldap(chroot, ldif_file):
 
         # load VPAC data
         chroot.check_call(["service", "slapd", "stop"], user='root')
+        logger.debug("Importing %s" % ldif_file + '.ldif')
         with open(ldif_file + '.ldif', 'r') as f:
             chroot.check_call(["slapadd"], stdin=f, user='root')
         chroot.check_call(["slapindex"], user='root')
