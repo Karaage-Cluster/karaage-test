@@ -313,11 +313,6 @@ def install_mysql(chroot, sql_file, distribution):
             chroot.check_call(
                 ["mysql", "--user=root", "--password=mysqlsecret"], stdin=f)
 
-    sql = "DROP TABLE projectreports_projectsurvey;"
-    chroot.check_call(
-        ["mysql", "-B", "-e", sql, "-pmysqlsecret", "karaage"],
-        user='root')
-
     tables = chroot.check_output(
         ["mysql", "-B", "-N", "-e", "SHOW TABLES", "-pmysqlsecret", "karaage"],
         user='root')
