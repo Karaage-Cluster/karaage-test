@@ -24,4 +24,4 @@ else
 fi
 
 cd "$DIR"
-./dotest --distribution=wheezy  --source=github --ldap=openldap --localhost --keep
+./dotest --distribution=wheezy  --ldap=openldap --localhost --keep

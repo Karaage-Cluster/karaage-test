@@ -126,42 +126,53 @@ def generate_keys():
         call(["gpg", "--no-default-keyring", "--batch", "--gen-key", f.name])
 
 
-def setup(chroot, distribution, config):
+def setup(chroot, tmp_dir, distribution, config):
+    repo_dir = os.path.join(tmp_dir, "repo")
+
     chroot.check_call(
         ["chmod", "1777", "/dev/shm"], user='root')
 
-    chroot.check_call(
-        ["apt-get", "install", "--yes", "eatmydata"], user='root')
+    if not os.path.isdir(repo_dir):
+        os.mkdir(repo_dir)
+
+    make_debian_repo(chroot, tmp_dir, repo_dir)
 
     with chroot.create_file('/etc/apt/sources.list', user='root') as f:
         f.write(
+            "deb file://%s ./\n" % (repo_dir))
+        f.write(
             "deb %s %s main\n"
             % (config.get("debian", "main"), distribution))
+        f.write(
+            "deb http://code.vpac.org/debian/ %s main\n"
+            % distribution)
 
-        f.write("deb http://code.vpac.org/debian/ %s main\n" % distribution)
-
-        with chroot.create_file('/etc/apt/preferences', user='root') as f:
-            f.write("Package: *\n")
-            f.write("Pin: release l=VPAC\n")
-            f.write("Pin-Priority: 510\n")
-            f.write("\n")
+    with chroot.create_file('/etc/apt/preferences', user='root') as f:
+        f.write("Package: *\n")
+        f.write("Pin: release l=VPAC\n")
+        f.write("Pin-Priority: 510\n")
+        f.write("\n")
+        f.write("Package: *\n")
+        f.write("Pin: origin ""\n")
+        f.write("Pin-Priority: 520\n")
+        f.write("\n")
 
     chroot.check_call(
         ["apt-key", "add", "vpac/vpac-debian-key.gpg"], user='root')
     chroot.check_call(
-        ["eatmydata", "apt-get", "update"], user='root')
+        ["apt-get", "update"], user='root')
     chroot.check_call(
-        ["eatmydata", "apt-get", "upgrade", "--yes"], user='root')
+        ["apt-get", "upgrade", "--yes"], user='root')
     chroot.check_call(
-        ["eatmydata", "apt-get", "install", "--yes", "git",
-            "build-essential", "debhelper", "python", "python-sphinx",
-            "python-django", "python-django-south", "python-setuptools"],
-        user='root')
+        [
+            "apt-get", "install", "--yes",
+            "build-essential", "git", "devscripts", "equivs",
+        ], user='root')
     chroot.check_call(
         ["debconf-set-selections", "debconf.conf"], user='root')
 
 
-def build_git_package(chroot, src, dst_dir, name, branch="master"):
+def build_git_package(chroot, src, tmp_dir, dst_dir, name, branch="master"):
     dst_path = os.path.join(dst_dir, name)
     chroot.check_call(["git", "clone", "--branch", branch, src, dst_path])
 
@@ -183,24 +194,31 @@ def build_git_package(chroot, src, dst_dir, name, branch="master"):
     cl.add_change('')
     cl.write_to_open_file(open(changelog_file, "w"))
 
+    control_file = os.path.join(dst_path, "debian/control")
+
+    depends_path = os.path.join(tmp_dir, "depends")
+    os.mkdir(depends_path)
+    with chdir(depends_path):
+        chroot.check_call(["mk-build-deps", control_file], user="root")
+
+    for name in os.listdir(depends_path):
+        path = os.path.join(depends_path, name)
+        if name.endswith(".deb"):
+            chroot.check_call(["dpkg", "--unpack", path], user="root")
+        chroot.check_call(["apt-get", "-f", "install", "--yes"], user="root")
+
+    shutil.rmtree(depends_path)
+
     with chdir(dst_path):
         chroot.check_call(["dpkg-checkbuilddeps"])
         chroot.check_call(["fakeroot", "debian/rules", "binary"])
 
 
-def make_debian_repo(chroot, tmp_dir, src_dir, dst_dir):
+def make_debian_repo(chroot, tmp_dir, dst_dir):
     homedir = os.path.join(tmp_dir, "tmphome")
     release_file = os.path.join(dst_dir, "Release")
 
     logger.debug("making temp Debian repository at %s" % dst_dir)
-
-    for name in os.listdir(src_dir):
-        if name.endswith(".deb"):
-            src_file = os.path.join(src_dir, name)
-            dst_file = os.path.join(dst_dir, name)
-            logger.debug("copying %s to %s" % (src_file, dst_file))
-            shutil.copyfile(src_file, dst_file)
-
     with tempfile.NamedTemporaryFile() as f:
         f.write('Dir {\n')
         f.write('   ArchiveDir "%s"\n' % dst_dir)
@@ -242,6 +260,15 @@ def make_debian_repo(chroot, tmp_dir, src_dir, dst_dir):
     chroot.check_call(["apt-key", "add", "keys/pubring.gpg"], user="root")
 
 
+def copy_to_debian_repo(chroot, src_dir, dst_dir):
+    for name in os.listdir(src_dir):
+        if name.endswith(".deb"):
+            src_file = os.path.join(src_dir, name)
+            dst_file = os.path.join(dst_dir, name)
+            logger.debug("copying %s to %s" % (src_file, dst_file))
+            shutil.copyfile(src_file, dst_file)
+
+
 def add_sources(chroot, tmp_dir, distribution, source, config):
     build_dir = os.path.join(tmp_dir, "build")
     repo_dir = os.path.join(tmp_dir, "repo")
@@ -249,44 +276,20 @@ def add_sources(chroot, tmp_dir, distribution, source, config):
     if not os.path.isdir(build_dir):
         os.mkdir(build_dir)
 
-    if not os.path.isdir(repo_dir):
-        os.mkdir(repo_dir)
-
     if source is not None:
         section = "git-%s" % source
         options = config.options(section)
         for name in options:
             url = config.get(section, name)
-            build_git_package(chroot, url, build_dir, name)
-
-    make_debian_repo(chroot, tmp_dir, build_dir, repo_dir)
-
-    with chroot.create_file('/etc/apt/sources.list', user='root') as f:
-        f.write(
-            "deb file://%s ./\n" % (repo_dir))
-        f.write(
-            "deb %s %s main\n"
-            % (config.get("debian", "main"), distribution))
-        f.write(
-            "deb http://code.vpac.org/debian/ %s main\n"
-            % distribution)
-
-    with chroot.create_file('/etc/apt/preferences', user='root') as f:
-        f.write("Package: *\n")
-        f.write("Pin: release l=VPAC\n")
-        f.write("Pin-Priority: 510\n")
-        f.write("\n")
-        f.write("Package: *\n")
-        f.write("Pin: origin ""\n")
-        f.write("Pin-Priority: 520\n")
-        f.write("\n")
-
-    chroot.check_call(["eatmydata", "apt-get", "update"], user='root')
+            build_git_package(chroot, url, tmp_dir, build_dir, name)
+            copy_to_debian_repo(chroot, build_dir, repo_dir)
+            make_debian_repo(chroot, tmp_dir, repo_dir)
+            chroot.check_call(["apt-get", "update"], user='root')
 
 
 def install_mysql(chroot, sql_file, distribution):
     chroot.check_call(
-        ["eatmydata", "apt-get", "install", "--yes", "mysql-server"],
+        ["apt-get", "install", "--yes", "mysql-server"],
         user='root')
 
     with chroot.create_file('/etc/mysql/conf.d/karaage.cnf', user='root') as f:
@@ -328,7 +331,7 @@ def install_mysql(chroot, sql_file, distribution):
 
 def install_openldap(chroot, ldif_file):
     chroot.check_call(
-        ["eatmydata", "apt-get", "install", "--yes", "slapd", "ldap-utils"],
+        ["apt-get", "install", "--yes", "slapd", "ldap-utils"],
         user='root')
 
     # load ppolicy schema
@@ -391,53 +394,56 @@ def install_openldap(chroot, ldif_file):
 
 def install_389(chroot, ldif_file):
     chroot.check_call(
-        ["eatmydata", "apt-get", "install", "--yes",
-            "389-ds-base", "ldap-utils"],
+        ["apt-get", "install", "--yes", "389-ds-base", "ldap-utils"],
         user='root')
     chroot.check_call(["setup-ds", "-s", "-f", "389/setup.inf"], user='root')
 
 
 def install_karaage(chroot):
     chroot.check_call(
-        ["eatmydata", "apt-get", "install", "--yes",
-            "libjs-jquery-ui", "python-mysqldb"],
+        [
+            "apt-get", "install", "--yes",
+            "libjs-jquery-ui", "csstidy", "slimit",
+            "python-mysql.connector", "python-cracklib",
+            "python3-mysql.connector", "python3-cracklib",
+        ],
         user='root')
     chroot.check_call(
-        ["eatmydata", "apt-get", "install", "--yes",
+        ["apt-get", "install", "--yes",
             "apache2", "libapache2-mod-wsgi"],
         user='root')
     chroot.check_call(
-        ["eatmydata", "apt-get", "install", "--yes",
+        ["apt-get", "install", "--yes",
             "karaage3-admin", "karaage3-registration"],
         user='root')
     chroot.check_call(
-        ["eatmydata", "apt-get", "install", "--yes", "karaage3-celery"],
+        ["apt-get", "install", "--yes", "karaage3-celery"],
         user='root')
 
 
 def config_karaage(chroot, karaage_file, distribution):
-    chroot.copy(karaage_file, "/etc/karaage/global_settings.py", user="root")
+    chroot.copy(karaage_file, "/etc/karaage3/global_settings.py", user="root")
     chroot.check_call(["kg_set_secret_key"], user='root')
     chroot.check_call(
-        ["chmod", "a+r", "/etc/karaage/global_settings.py"], user='root')
+        ["chmod", "a+r", "/etc/karaage3/global_settings.py"], user='root')
     if distribution == 'sid':
         chroot.check_call(
-            ["ln", "-s", "/etc/karaage/kgadmin-apache.conf",
+            ["ln", "-s", "/etc/karaage3/kgadmin-apache.conf",
                 "/etc/apache2/conf-available/"],
             user='root')
         chroot.check_call(
-            ["ln", "-s", "/etc/karaage/kgreg-apache.conf",
+            ["ln", "-s", "/etc/karaage3/kgreg-apache.conf",
                 "/etc/apache2/conf-available/"],
             user='root')
         chroot.check_call(["a2enconf", "kgadmin-apache"], user='root')
         chroot.check_call(["a2enconf", "kgreg-apache"], user='root')
     elif distribution == "squeeze" or distribution == "wheezy":
         chroot.check_call(
-            ["ln", "-s", "/etc/karaage/kgadmin-apache.conf",
+            ["ln", "-s", "/etc/karaage3/kgadmin-apache.conf",
                 "/etc/apache2/conf.d/"],
             user='root')
         chroot.check_call(
-            ["ln", "-s", "/etc/karaage/kgreg-apache.conf",
+            ["ln", "-s", "/etc/karaage3/kgreg-apache.conf",
                 "/etc/apache2/conf.d/"],
             user='root')
     else:
@@ -449,14 +455,14 @@ def config_karaage(chroot, karaage_file, distribution):
         ["kg-manage", "migrate", "--all", "--traceback"], user='root')
     chroot.check_call(
         ["sed", "-i", "s/^\(LDAP_PEOPLE *= *\).*$/\\1True/",
-            "/etc/karaage/global_settings.py"], user='root')
+            "/etc/karaage3/global_settings.py"], user='root')
     chroot.check_call(
         ["kg-manage", "migrate_ldap", "--traceback"], user='root')
 
     chroot.check_call(
         ["service", "apache2", "reload"], user='root')
     chroot.check_call(
-        ["service", "python-karaage-celery", "restart"], user='root')
+        ["service", "karaage3-celery", "restart"], user='root')
     chroot.check_call(
         ["kg-manage", "kgcreatesuperuser",
             "--username=kgadmin", "--email=kgadmin@example.org",
@@ -467,10 +473,10 @@ def config_karaage(chroot, karaage_file, distribution):
 
 def remove_karaage(chroot):
     chroot.check_call(
-        ["eatmydata", "apt-get", "remove", "--purge", "--yes", "karaage3"],
+        ["apt-get", "remove", "--purge", "--yes", "karaage3"],
         user='root')
     chroot.check_call(
-        ["eatmydata", "apt-get", "autoremove", "--purge", "--yes"],
+        ["apt-get", "autoremove", "--purge", "--yes"],
         user='root')
 
 
@@ -478,7 +484,7 @@ def test_karaage(chroot, tmp_dir, args):
     config = ConfigParser.ConfigParser()
     config.read(args.config)
 
-    setup(chroot, args.distribution, config)
+    setup(chroot, tmp_dir, args.distribution, config)
     add_sources(chroot, tmp_dir, args.distribution, args.source, config)
     install_mysql(chroot, args.sql, args.distribution)
     if args.ldap == 'openldap':

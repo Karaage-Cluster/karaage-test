@@ -61,7 +61,7 @@ MANAGERS = ADMINS
 # dictionary containing the options for an individual database.
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
+        'ENGINE': 'mysql.connector.django',
         'NAME': 'karaage',
         'USER': 'karaage',
         'PASSWORD': 'mysqlsecret',
@@ -121,35 +121,35 @@ LOGGING = {
         'django_file': {
             'level': 'WARNING',
             'class': 'karaage.common.logging.FileHandler',
-            'filename': '/var/log/karaage/django.log',
+            'filename': '/var/log/karaage3/django.log',
             'formatter': 'verbose',
             'owner': ['www-data', 'www-data'],
         },
         'karaage_file': {
             'level': 'WARNING',
             'class': 'karaage.common.logging.FileHandler',
-            'filename': '/var/log/karaage/karaage.log',
+            'filename': '/var/log/karaage3/karaage.log',
             'formatter': 'verbose',
             'owner': ['www-data', 'www-data'],
         },
 #        'ldap_file': {
 #            'level': 'DEBUG',
 #            'class': 'karaage.common.logging.FileHandler',
-#            'filename': '/var/log/karaage/ldap.log',
+#            'filename': '/var/log/karaage3/ldap.log',
 #            'formatter': 'verbose',
 #            'owner': ['www-data', 'www-data'],
 #        },
 #        'gold_file': {
 #            'level': 'DEBUG',
 #            'class': 'karaage.common.logging.FileHandler',
-#            'filename': '/var/log/karaage/gold.log',
+#            'filename': '/var/log/karaage3/gold.log',
 #            'formatter': 'verbose',
 #            'owner': ['www-data', 'www-data'],
 #       },
 #       'slurm_file': {
 #            'level': 'DEBUG',
 #            'class': 'karaage.common.logging.FileHandler',
-#            'filename': '/var/log/karaage/slurm.log',
+#            'filename': '/var/log/karaage3/slurm.log',
 #            'formatter': 'verbose',
 #            'owner': ['www-data', 'www-data'],
 #        },
@@ -215,7 +215,7 @@ ACCOUNTS_ORG_NAME = 'Example'
 
 # Path to AUP policy. Note that setting this will not disable the Karaage
 # default page, it might be better to replace the AUP with a file in
-# /etc/karaage/templates/aup.html if required.
+# /etc/karaage3/templates/aup.html if required.
 #
 # default: Django template
 #
