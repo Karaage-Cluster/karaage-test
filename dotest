@@ -422,10 +422,10 @@ def install_karaage(chroot):
 
 
 def config_karaage(chroot, karaage_file, distribution):
-    chroot.copy(karaage_file, "/etc/karaage3/global_settings.py", user="root")
+    chroot.copy(karaage_file, "/etc/karaage3/settings.py", user="root")
     chroot.check_call(["kg_set_secret_key"], user='root')
     chroot.check_call(
-        ["chmod", "a+r", "/etc/karaage3/global_settings.py"], user='root')
+        ["chmod", "a+r", "/etc/karaage3/settings.py"], user='root')
     if distribution == 'sid':
         chroot.check_call(
             ["ln", "-s", "/etc/karaage3/kgadmin-apache.conf",
@@ -455,7 +455,7 @@ def config_karaage(chroot, karaage_file, distribution):
         ["kg-manage", "migrate", "--all", "--traceback"], user='root')
     chroot.check_call(
         ["sed", "-i", "s/^\(LDAP_PEOPLE *= *\).*$/\\1True/",
-            "/etc/karaage3/global_settings.py"], user='root')
+            "/etc/karaage3/settings.py"], user='root')
     chroot.check_call(
         ["kg-manage", "migrate_ldap", "--traceback"], user='root')
 
@@ -489,10 +489,10 @@ def test_karaage(chroot, tmp_dir, args):
     install_mysql(chroot, args.sql, args.distribution)
     if args.ldap == 'openldap':
         install_openldap(chroot, args.ldif)
-        karaage_file = args.karaage or "openldap/global_settings.py"
+        karaage_file = args.karaage or "openldap/settings.py"
     elif args.ldap == '389':
         install_389(chroot, args.ldif)
-        karaage_file = args.karaage or "389/global_settings.py"
+        karaage_file = args.karaage or "389/settings.py"
     else:
         raise RuntimeError("Unknown ldap server '%s'" % args.ldap)
     install_karaage(chroot)
