@@ -89,10 +89,11 @@ def temp_dir():
     tmp_dir = tempfile.mkdtemp()
     cur_dir = os.getcwd()
 
-    yield tmp_dir
-
-    os.chdir(cur_dir)
-    shutil.rmtree(tmp_dir)
+    try:
+        yield tmp_dir
+    finally:
+        os.chdir(cur_dir)
+        shutil.rmtree(tmp_dir)
 
 
 @contextmanager
