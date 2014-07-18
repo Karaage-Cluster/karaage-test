@@ -406,6 +406,7 @@ def install_karaage(chroot):
             "apt-get", "install", "--yes",
             "libjs-jquery-ui", "csstidy", "slimit",
             "python-mysql.connector", "python-cracklib",
+            "python-kgusage",
             "python3-mysql.connector", "python3-cracklib",
         ],
         user='root')
@@ -415,10 +416,8 @@ def install_karaage(chroot):
         user='root')
     chroot.check_call(
         ["apt-get", "install", "--yes",
-            "karaage3-admin", "karaage3-registration"],
-        user='root')
-    chroot.check_call(
-        ["apt-get", "install", "--yes", "karaage3-celery"],
+            "karaage3-admin", "karaage3-registration", "karaage3",
+            "karaage3-celery"],
         user='root')
 
 
@@ -474,7 +473,8 @@ def config_karaage(chroot, karaage_file, distribution):
 
 def remove_karaage(chroot):
     chroot.check_call(
-        ["apt-get", "remove", "--purge", "--yes", "karaage3"],
+        ["apt-get", "remove", "--purge", "--yes",
+            "karaage3-admin", "karaage3-registration"],
         user='root')
     chroot.check_call(
         ["apt-get", "autoremove", "--purge", "--yes"],
