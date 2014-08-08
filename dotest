@@ -412,12 +412,7 @@ def install_karaage(chroot):
         user='root')
     chroot.check_call(
         ["apt-get", "install", "--yes",
-            "apache2", "libapache2-mod-wsgi"],
-        user='root')
-    chroot.check_call(
-        ["apt-get", "install", "--yes",
-            "karaage3-admin", "karaage3-registration", "karaage3",
-            "karaage3-celery"],
+            "karaage3", "karaage3-celery"],
         user='root')
 
 
@@ -426,28 +421,6 @@ def config_karaage(chroot, karaage_file, distribution):
     chroot.check_call(["kg_set_secret_key"], user='root')
     chroot.check_call(
         ["chmod", "a+r", "/etc/karaage3/settings.py"], user='root')
-    if distribution == 'sid':
-        chroot.check_call(
-            ["ln", "-s", "/etc/karaage3/kgadmin-apache.conf",
-                "/etc/apache2/conf-available/"],
-            user='root')
-        chroot.check_call(
-            ["ln", "-s", "/etc/karaage3/kgreg-apache.conf",
-                "/etc/apache2/conf-available/"],
-            user='root')
-        chroot.check_call(["a2enconf", "kgadmin-apache"], user='root')
-        chroot.check_call(["a2enconf", "kgreg-apache"], user='root')
-    elif distribution == "squeeze" or distribution == "wheezy":
-        chroot.check_call(
-            ["ln", "-s", "/etc/karaage3/kgadmin-apache.conf",
-                "/etc/apache2/conf.d/"],
-            user='root')
-        chroot.check_call(
-            ["ln", "-s", "/etc/karaage3/kgreg-apache.conf",
-                "/etc/apache2/conf.d/"],
-            user='root')
-    else:
-        raise RuntimeError("Unknown distribution")
 
     chroot.check_call(
         ["kg-manage", "syncdb", "--noinput"], user='root')
@@ -474,7 +447,7 @@ def config_karaage(chroot, karaage_file, distribution):
 def remove_karaage(chroot):
     chroot.check_call(
         ["apt-get", "remove", "--purge", "--yes",
-            "karaage3-admin", "karaage3-registration"],
+            "karaage3"],
         user='root')
     chroot.check_call(
         ["apt-get", "autoremove", "--purge", "--yes"],
