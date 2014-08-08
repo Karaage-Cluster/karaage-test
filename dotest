@@ -417,7 +417,12 @@ def install_karaage(chroot):
 
 
 def config_karaage(chroot, karaage_file, distribution):
-    chroot.copy(karaage_file, "/etc/karaage3/settings.py", user="root")
+    with chroot.create_file('/etc/karaage3/settings.py', user='root') as f:
+        with open("settings.py", "r") as src:
+            shutil.copyfileobj(src, f)
+        with open(karaage_file, "r") as src:
+            shutil.copyfileobj(src, f)
+
     chroot.check_call(["kg_set_secret_key"], user='root')
     chroot.check_call(
         ["chmod", "a+r", "/etc/karaage3/settings.py"], user='root')
