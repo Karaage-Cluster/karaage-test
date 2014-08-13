@@ -290,7 +290,8 @@ def add_sources(chroot, tmp_dir, distribution, source, config):
 
 def install_mysql(chroot, sql_file, distribution):
     chroot.check_call(
-        ["apt-get", "install", "--yes", "mysql-server"],
+        ["apt-get", "install", "--yes", "mysql-server",
+            "python-mysql.connector", "python3-mysql.connector"],
         user='root')
 
     with chroot.create_file('/etc/mysql/conf.d/karaage.cnf', user='root') as f:
@@ -328,6 +329,24 @@ def install_mysql(chroot, sql_file, distribution):
         chroot.check_call(
             ["mysql", "-B", "-e", sql, "-pmysqlsecret", "karaage"],
             user='root')
+
+
+def install_postgresql(chroot, sql_file, distribution):
+    chroot.check_call(
+        ["apt-get", "install", "--yes", "postgresql", "sudo",
+            "python-psycopg2", "python3-psycopg2"],
+        user='root')
+
+    with open('postgresql/setup.sql', 'r') as f:
+        chroot.check_call(
+            ["sudo", "-u", "postgres", "/usr/bin/psql"],
+            stdin=f, user="root")
+
+    if sql_file is not None:
+        with open(sql_file, 'r') as f:
+            chroot.check_call(
+                ["sudo", "-u", "postgres", "/usr/bin/psql"],
+                stdin=f, user="root")
 
 
 def install_openldap(chroot, ldif_file):
@@ -405,9 +424,9 @@ def install_karaage(chroot):
         [
             "apt-get", "install", "--yes",
             "libjs-jquery-ui", "csstidy", "slimit",
-            "python-mysql.connector", "python-cracklib",
+            "python-cracklib",
             "python-kgusage",
-            "python3-mysql.connector", "python3-cracklib",
+            "python3-cracklib",
         ],
         user='root')
     chroot.check_call(
@@ -416,9 +435,11 @@ def install_karaage(chroot):
         user='root')
 
 
-def config_karaage(chroot, karaage_file, distribution):
+def config_karaage(chroot, database, karaage_file, distribution):
     with chroot.create_file('/etc/karaage3/settings.py', user='root') as f:
         with open("settings.py", "r") as src:
+            shutil.copyfileobj(src, f)
+        with open(os.path.join(database, "settings.py"), "r") as src:
             shutil.copyfileobj(src, f)
         with open(karaage_file, "r") as src:
             shutil.copyfileobj(src, f)
@@ -465,7 +486,13 @@ def test_karaage(chroot, tmp_dir, args):
 
     setup(chroot, tmp_dir, args.distribution, config)
     add_sources(chroot, tmp_dir, args.distribution, args.source, config)
-    install_mysql(chroot, args.sql, args.distribution)
+    if args.database == "mysql":
+        install_mysql(chroot, args.sql, args.distribution)
+    elif args.database == "postgresql":
+        install_postgresql(chroot, args.sql, args.distribution)
+    else:
+        raise RuntimeError("Unknown database server '%s'" % args.database)
+
     if args.ldap == 'openldap':
         install_openldap(chroot, args.ldif)
         karaage_file = args.karaage or "openldap/settings.py"
@@ -475,7 +502,7 @@ def test_karaage(chroot, tmp_dir, args):
     else:
         raise RuntimeError("Unknown ldap server '%s'" % args.ldap)
     install_karaage(chroot)
-    config_karaage(chroot, karaage_file, args.distribution)
+    config_karaage(chroot, args.database, karaage_file, args.distribution)
     if args.shell:
         print("")
         print("Configured. tmp_dir=%s" % tmp_dir)
@@ -549,6 +576,10 @@ def main():
         action="store_true",
         help="Act on local system, not schroot (potentially dangerous)")
 
+    parser.add_argument(
+        "--database",
+        choices=['mysql', 'postgresql'], default="mysql",
+        help="Which database?")
     parser.add_argument(
         "-l", "--ldap",
         choices=['openldap', '389'], default="openldap",

@@ -59,17 +59,6 @@ MANAGERS = ADMINS
 # A dictionary containing the settings for all databases to be used with
 # Django. It is a nested dictionary whose contents maps database aliases to a
 # dictionary containing the options for an individual database.
-DATABASES = {
-    'default': {
-        'ENGINE': 'mysql.connector.django',
-        'NAME': 'karaage',
-        'USER': 'karaage',
-        'PASSWORD': 'mysqlsecret',
-        'HOST': '',
-        'PORT': '',
-        'ATOMIC_REQUESTS': True,
-    }
-}
 
 # The email address that error messages come from, such as those sent to ADMINS
 # and MANAGERS.
