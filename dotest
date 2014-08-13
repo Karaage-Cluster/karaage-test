@@ -535,11 +535,15 @@ def main():
         "-d", "--distribution",
         choices=['squeeze', 'wheezy', 'sid'], default="wheezy",
         help="Which distribution?")
+    parser.add_argument(
+        "-a", "--architecture",
+        choices=['i386', 'amd64'], default="amd64",
+        help="Which distribution?")
 
     group = parser.add_mutually_exclusive_group(required=False)
     group.add_argument(
         "--chroot",
-        help="Name of chroot to use. Default is distribution.")
+        help="Name of chroot to use. Default is distribution + architecture.")
     group.add_argument(
         "--localhost",
         action="store_true",
@@ -579,7 +583,8 @@ def main():
         help="Don't uninstall everything on completion")
     args = parser.parse_args()
 
-    chroot_name = args.chroot or args.distribution
+    chroot_name = "%s-%s" % (
+        args.chroot or args.distribution, args.architecture)
 
     generate_keys()
 
