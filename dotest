@@ -538,7 +538,7 @@ def main():
     parser.add_argument(
         "-a", "--architecture",
         choices=['i386', 'amd64'], default="amd64",
-        help="Which distribution?")
+        help="Which architecture?")
 
     group = parser.add_mutually_exclusive_group(required=False)
     group.add_argument(
