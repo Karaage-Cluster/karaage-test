@@ -435,14 +435,17 @@ def install_karaage(chroot):
         user='root')
 
 
-def config_karaage(chroot, database, karaage_file, distribution):
+def config_karaage(chroot, database, ldap, karaage_file, distribution):
     with chroot.create_file('/etc/karaage3/settings.py', user='root') as f:
         with open("settings.py", "r") as src:
             shutil.copyfileobj(src, f)
-        with open(os.path.join(database, "settings.py"), "r") as src:
-            shutil.copyfileobj(src, f)
         with open(karaage_file, "r") as src:
             shutil.copyfileobj(src, f)
+        with open(os.path.join(database, "settings.py"), "r") as src:
+            shutil.copyfileobj(src, f)
+        if ldap != "none":
+            with open(os.path.join(ldap, "settings.py"), "r") as src:
+                shutil.copyfileobj(src, f)
 
     chroot.check_call(["kg_set_secret_key"], user='root')
     chroot.check_call(
@@ -495,14 +498,16 @@ def test_karaage(chroot, tmp_dir, args):
 
     if args.ldap == 'openldap':
         install_openldap(chroot, args.ldif)
-        karaage_file = args.karaage or "openldap/settings.py"
     elif args.ldap == '389':
         install_389(chroot, args.ldif)
-        karaage_file = args.karaage or "389/settings.py"
+    elif args.ldap == 'none':
+        pass
     else:
         raise RuntimeError("Unknown ldap server '%s'" % args.ldap)
+    karaage_file = args.karaage or "site_settings.py"
     install_karaage(chroot)
-    config_karaage(chroot, args.database, karaage_file, args.distribution)
+    config_karaage(
+        chroot, args.database, args.ldap, karaage_file, args.distribution)
     if args.shell:
         print("")
         print("Configured. tmp_dir=%s" % tmp_dir)
@@ -582,7 +587,7 @@ def main():
         help="Which database?")
     parser.add_argument(
         "-l", "--ldap",
-        choices=['openldap', '389'], default="openldap",
+        choices=['openldap', '389', 'none'], default="openldap",
         help="Which LDAP server?")
     parser.add_argument(
         "-c", "--config",

@@ -2,8 +2,8 @@ LDAP = {
     'default': {
         'ENGINE': 'tldap.backend.fake_transactions',
         'URI': 'ldap://localhost',
-        'USER': 'cn=admin,dc=example,dc=org',
-        'PASSWORD': 'slapdsecret',
+        'USER': _ldap_user,
+        'PASSWORD': _ldap_password,
         'REQUIRE_TLS': False,
         'START_TLS': False,
         'TLS_CA': None,
@@ -22,8 +22,8 @@ MACHINE_CATEGORY_DATASTORES = {
             'DEFAULT_PRIMARY_GROUP': "dummy",
             'HOME_DIRECTORY': "/home/%(uid)s",
             'LOCKED_SHELL': "/usr/local/sbin/locked",
-            'LDAP_ACCOUNT_BASE': 'ou=People,dc=example, dc=org',
-            'LDAP_GROUP_BASE': 'ou=Groups,dc=example, dc=org',
+            'LDAP_ACCOUNT_BASE': _ldap_person_base,
+            'LDAP_GROUP_BASE': _ldap_group_base,
         },
     ],
     'dummy': [
@@ -31,7 +31,7 @@ MACHINE_CATEGORY_DATASTORES = {
 }
 
 LDAP_PEOPLE = False
-if LDAP_PEOPLE:
+if LDAP_PEOPLE and _ldap_account_base:
     GLOBAL_DATASTORES = [
         {
             'DESCRIPTION': 'LDAP datastore',
@@ -39,9 +39,9 @@ if LDAP_PEOPLE:
             'LDAP': 'default',
             'PERSON': 'karaage.datastores.ldap_schemas.openldap_person',
             'GROUP': 'karaage.datastores.ldap_schemas.openldap_person_group',
-            'LDAP_PERSON_BASE': 'ou=People,dc=example, dc=org',
-            'LDAP_GROUP_BASE': 'ou=Groups,dc=example, dc=org',
+            'LDAP_PERSON_BASE':_ldap_person_base,
+            'LDAP_GROUP_BASE': _ldap_group_base,
         },
     ]
     MACHINE_CATEGORY_DATASTORES['ldap'][0]['LDAP_ACCOUNT_BASE'] = \
-        'ou=Accounts,dc=example, dc=org'
+        _ldap_account_base
