@@ -427,6 +427,7 @@ def install_karaage(chroot):
             "python-cracklib",
             "python-kgusage",
             "python3-cracklib",
+            "python3-kgusage",
         ],
         user='root')
     chroot.check_call(
