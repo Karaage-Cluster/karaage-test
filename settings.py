@@ -245,10 +245,10 @@ ACCOUNTS_ORG_NAME = 'Example'
 # default: PLUGINS = []
 #
 # PLUGINS = [
-#     'kgusage.plugins.Jobs',
+#     'kgusage.plugin',
 # ]
 PLUGINS = [
-    'kgusage.plugins.Jobs',
+    'kgusage.plugin',
 ]
 
 # Django Pipeline configuration
