@@ -1,0 +1,126 @@
+#!/usr/bin/env python
+# Copyright 2013 VPAC
+#
+# This file is part of Karaage.
+#
+# Karaage is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# Karaage is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Karaage  If not, see <http://www.gnu.org/licenses/>.
+
+import argparse
+import os.path
+import subprocess
+import logging
+
+try:
+    from colorlog import ColoredFormatter
+except ImportError:
+    ColoredFormatter = None
+
+
+logger = logging.getLogger(__name__)
+
+
+def setup_logging():
+    if ColoredFormatter is not None:
+        formatter = ColoredFormatter(
+            "\n%(log_color)s%(asctime)s %(levelname)-8s %(message)s",
+            datefmt="%m-%d %H:%M",
+            reset=True,
+            log_colors={
+                'DEBUG':    'cyan',
+                'INFO':     'green',
+                'WARNING':  'yellow',
+                'ERROR':    'red',
+                'CRITICAL': 'red',
+            }
+        )
+    else:
+        formatter = logging.Formatter(
+            "\n%(asctime)s %(levelname)-8s "
+            "%(message)s",
+            datefmt="%m-%d %H:%M",
+        )
+
+    console = logging.StreamHandler()
+    console.setLevel(logging.DEBUG)
+    console.setFormatter(formatter)
+
+    root = logging.getLogger('')
+    root.setLevel(logging.DEBUG)
+    root.addHandler(console)
+
+
+def call(cmd, **kwargs):
+    logger.debug(" ".join(cmd))
+    return subprocess.check_call(cmd, **kwargs)
+
+
+def main():
+    setup_logging()
+
+    parser = argparse.ArgumentParser(
+        description='Download test data')
+    parser.add_argument(
+        "-n", "--name", required=True,
+        help="Name of dataset?")
+    parser.add_argument(
+        "-s", "--sql_server", required=True,
+        help="Hostname of source mysql server")
+    parser.add_argument(
+        "-l", "--ldap_server", required=True,
+        help="Hostname of source LDAP server")
+    args = parser.parse_args()
+
+    directory = os.path.join("data", args.name)
+
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+    sql_file = os.path.join(directory, "nousage.sql")
+    sql_file_tmp = sql_file + ".tmp"
+    with open(sql_file_tmp, "w") as f:
+        call([
+            "ssh", "root@%s" % args.sql_server, "mysqldump",
+            "--database", "karaage",
+            "--ignore-table", "karaage.cpu_job_software",
+            "--ignore-table", "karaage.cpu_job",
+        ], stdout=f)
+        call([
+            "ssh", "root@%s" % args.sql_server, "mysqldump",
+            "karaage", "--no-data",
+            "cpu_job_software",
+            "cpu_job",
+        ], stdout=f)
+    os.rename(sql_file_tmp, sql_file)
+
+    sql_file = os.path.join(directory, "complete.sql")
+    sql_file_tmp = sql_file + ".tmp"
+    with open(sql_file_tmp, "w") as f:
+        call([
+            "ssh", "root@%s" % args.sql_server, "mysqldump",
+            "--database", "karaage",
+        ], stdout=f)
+    os.rename(sql_file_tmp, sql_file)
+
+    ldap_file = os.path.join(directory, "complete.ldif")
+    ldap_file_tmp = ldap_file + ".tmp"
+    with open(ldap_file_tmp, "w") as f:
+        call([
+            "ssh", "root@%s" % args.ldap_server, "slapcat",
+            "-H", "ldap:///",
+        ], stdout=f)
+    os.rename(ldap_file_tmp, ldap_file)
+
+
+if __name__ == "__main__":
+    main()

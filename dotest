@@ -380,35 +380,40 @@ def install_openldap(chroot, ldif_file):
 
     else:
 
+        base_name = os.path.splitext(ldif_file)[0]
+
         # reconfigure base DN
-        logger.debug("Importing %s" % ldif_file + '-config.ldif')
-        with open(ldif_file + '-config.ldif', 'r') as f:
+        logger.debug("Importing %s" % base_name + '-config.ldif')
+        with open(base_name + '-config.ldif', 'r') as f:
             chroot.check_call(
                 ["ldapmodify", "-Y", "EXTERNAL", "-H", "ldapi:///"],
                 stdin=f, user='root')
 
-        # kill existing data
+        # stop server
         chroot.check_call(["service", "slapd", "stop"], user='root')
+
+        # kill existing data
         chroot.check_call(["rm", "-rf", "/var/lib/ldap/"], user='root')
         chroot.check_call(["mkdir", "/var/lib/ldap/"], user='root')
         logger.debug("Importing %s" % "/dev/null")
-        with open('/dev/null', 'r') as f:
-            chroot.check_call(["slapadd"], stdin=f, user='root')
-        chroot.check_call(["slapindex"], user='root')
-        chroot.check_call(
-            ["chown", "openldap:openldap", "-R", "/var/lib/ldap/"],
-            user='root')
-        chroot.check_call(["service", "slapd", "start"], user='root')
 
-        # load VPAC data
-        chroot.check_call(["service", "slapd", "stop"], user='root')
-        logger.debug("Importing %s" % ldif_file + '.ldif')
-        with open(ldif_file + '.ldif', 'r') as f:
+        # load data
+        logger.debug("Importing %s" % ldif_file)
+        with open(ldif_file, 'r') as f:
             chroot.check_call(["slapadd"], stdin=f, user='root')
+
+        # load data
+        logger.debug("Importing %s" % base_name + '-extra.ldif')
+        with open(base_name + '-extra.ldif', 'r') as f:
+            chroot.check_call(["slapadd"], stdin=f, user='root')
+
+        # index database
         chroot.check_call(["slapindex"], user='root')
         chroot.check_call(
             ["chown", "openldap:openldap", "-R", "/var/lib/ldap/"],
             user='root')
+
+        # restart server
         chroot.check_call(["service", "slapd", "start"], user='root')
 
 
