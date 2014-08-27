@@ -23,7 +23,7 @@ MACHINE_CATEGORY_DATASTORES = {
             'HOME_DIRECTORY': "/home/%(uid)s",
             'LOCKED_SHELL': "/usr/local/sbin/locked",
             'LDAP_ACCOUNT_BASE': _ldap_person_base,
-            'LDAP_GROUP_BASE': _ldap_group_base,
+            'LDAP_GROUP_BASE': _ldap_account_group_base,
         },
     ],
     'dummy': [
@@ -40,7 +40,7 @@ if LDAP_PEOPLE and _ldap_account_base:
             'PERSON': 'karaage.datastores.ldap_schemas.openldap_person',
             'GROUP': 'karaage.datastores.ldap_schemas.openldap_person_group',
             'LDAP_PERSON_BASE':_ldap_person_base,
-            'LDAP_GROUP_BASE': _ldap_group_base,
+            'LDAP_GROUP_BASE': _ldap_person_group_base,
         },
     ]
     MACHINE_CATEGORY_DATASTORES['ldap'][0]['LDAP_ACCOUNT_BASE'] = \
