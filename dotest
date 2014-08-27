@@ -402,11 +402,6 @@ def install_openldap(chroot, ldif_file):
         with open(ldif_file, 'r') as f:
             chroot.check_call(["slapadd"], stdin=f, user='root')
 
-        # load data
-        logger.debug("Importing %s" % base_name + '-extra.ldif')
-        with open(base_name + '-extra.ldif', 'r') as f:
-            chroot.check_call(["slapadd"], stdin=f, user='root')
-
         # index database
         chroot.check_call(["slapindex"], user='root')
         chroot.check_call(
