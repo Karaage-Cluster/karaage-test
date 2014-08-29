@@ -22,8 +22,10 @@ MACHINE_CATEGORY_DATASTORES = {
             'DEFAULT_PRIMARY_GROUP': "dummy",
             'HOME_DIRECTORY': "/home/%(uid)s",
             'LOCKED_SHELL': "/usr/local/sbin/locked",
-            'LDAP_ACCOUNT_BASE': _ldap_person_base,
-            'LDAP_GROUP_BASE': _ldap_account_group_base,
+            'LDAP_ACCOUNT_BASE': _ldap_old_account_base,
+            'LDAP_GROUP_BASE': _ldap_old_group_base,
+            'OLD_ACCOUNT_BASE': _ldap_old_account_base,
+            'OLD_GROUP_BASE': _ldap_old_group_base,
         },
     ],
     'dummy': [
@@ -31,7 +33,7 @@ MACHINE_CATEGORY_DATASTORES = {
 }
 
 LDAP_PEOPLE = False
-if LDAP_PEOPLE and _ldap_account_base:
+if LDAP_PEOPLE and _ldap_person_base:
     GLOBAL_DATASTORES = [
         {
             'DESCRIPTION': 'LDAP datastore',
@@ -39,9 +41,12 @@ if LDAP_PEOPLE and _ldap_account_base:
             'LDAP': 'default',
             'PERSON': 'karaage.datastores.ldap_schemas.openldap_person',
             'GROUP': 'karaage.datastores.ldap_schemas.openldap_person_group',
-            'LDAP_PERSON_BASE':_ldap_person_base,
+            'LDAP_PERSON_BASE': _ldap_person_base,
             'LDAP_GROUP_BASE': _ldap_person_group_base,
         },
     ]
+if LDAP_PEOPLE:
     MACHINE_CATEGORY_DATASTORES['ldap'][0]['LDAP_ACCOUNT_BASE'] = \
         _ldap_account_base
+    MACHINE_CATEGORY_DATASTORES['ldap'][0]['LDAP_GROUP_BASE'] = \
+        _ldap_account_group_base
