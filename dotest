@@ -168,6 +168,7 @@ def setup(chroot, tmp_dir, distribution, config):
         [
             "apt-get", "install", "--yes",
             "build-essential", "git", "devscripts", "equivs",
+            "quilt",
         ], user='root')
     chroot.check_call(
         ["debconf-set-selections", "debconf.conf"], user='root')
@@ -211,6 +212,8 @@ def build_git_package(chroot, src, tmp_dir, dst_dir, name, branch="master"):
     shutil.rmtree(depends_path)
 
     with chdir(dst_path):
+        if os.path.exists("debian/patches/series"):
+            chroot.check_call(["quilt", "push", "-a"])
         chroot.check_call(["dpkg-checkbuilddeps"])
         chroot.check_call(["fakeroot", "debian/rules", "binary"])
 
