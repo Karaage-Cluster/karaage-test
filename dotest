@@ -469,12 +469,12 @@ def config_karaage(chroot, database, ldap, karaage_file, distribution):
         ["service", "apache2", "reload"], user='root')
     chroot.check_call(
         ["service", "karaage3-celery", "restart"], user='root')
-    chroot.check_call(
-        ["kg-manage", "kgcreatesuperuser",
-            "--username=kgadmin", "--email=kgadmin@example.org",
-            "--password=1234", "--short_name=karaage", "--full_name=admin",
-            "--institute=test"],
-        user='root')
+#    chroot.check_call(
+#        ["kg-manage", "kgcreatesuperuser",
+#            "--username=kgadmin", "--email=kgadmin@example.org",
+#            "--password=1234", "--short_name=karaage", "--full_name=admin",
+#            "--institute=test"],
+#        user='root')
 
 
 def remove_karaage(chroot):
