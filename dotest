@@ -460,7 +460,7 @@ def config_karaage(chroot, database, ldap, karaage_file, distribution):
     chroot.check_call(
         ["kg-manage", "migrate", "--all", "--traceback"], user='root')
     chroot.check_call(
-        ["kg-manage", "migrate_ldap", "--traceback"], user='root')
+        ["kg-manage", "migrate_ldap", "--delete", "--traceback"], user='root')
 
     chroot.check_call(
         ["service", "apache2", "reload"], user='root')
