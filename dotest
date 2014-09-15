@@ -273,6 +273,19 @@ def copy_to_debian_repo(chroot, src_dir, dst_dir):
             shutil.copyfile(src_file, dst_file)
 
 
+def split_git_url(url):
+    split = url.split(" ", 1)
+    try:
+        branch = split[1]
+        if branch.startswith("-b"):
+            branch = branch.split(" ", 1)[1]
+        else:
+            raise RuntimeError("Cannot parse URL: %s" % url)
+    except IndexError:
+        branch = "master"
+    return (split[0], branch)
+
+
 def add_sources(chroot, tmp_dir, distribution, source, config):
     build_dir = os.path.join(tmp_dir, "build")
     repo_dir = os.path.join(tmp_dir, "repo")
@@ -285,7 +298,8 @@ def add_sources(chroot, tmp_dir, distribution, source, config):
         options = config.options(section)
         for name in options:
             url = config.get(section, name)
-            build_git_package(chroot, url, tmp_dir, build_dir, name)
+            url, branch = split_git_url(url)
+            build_git_package(chroot, url, tmp_dir, build_dir, name, branch)
             copy_to_debian_repo(chroot, build_dir, repo_dir)
             make_debian_repo(chroot, tmp_dir, repo_dir)
             chroot.check_call(["apt-get", "update"], user='root')
