@@ -213,7 +213,9 @@ def build_git_package(chroot, src, tmp_dir, dst_dir, name, branch="master"):
 
     with chdir(dst_path):
         if os.path.exists("debian/patches/series"):
-            chroot.check_call(["quilt", "push", "-a"])
+            chroot.check_call(
+                ["quilt", "push", "-a"],
+                env={'QUILT_PATCHES': 'debian/patches'})
         chroot.check_call(["dpkg-checkbuilddeps"])
         chroot.check_call(["fakeroot", "debian/rules", "binary"])
 
