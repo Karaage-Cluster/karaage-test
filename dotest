@@ -455,7 +455,7 @@ def install_karaage(chroot):
         user='root')
 
 
-def config_karaage(chroot, database, ldap, karaage_file, distribution):
+def config_karaage(chroot, database, ldap, south, karaage_file):
     with chroot.create_file('/etc/karaage3/settings.py', user='root') as f:
         with open("settings.py", "r") as src:
             shutil.copyfileobj(src, f)
@@ -471,10 +471,25 @@ def config_karaage(chroot, database, ldap, karaage_file, distribution):
     chroot.check_call(
         ["chmod", "a+r", "/etc/karaage3/settings.py"], user='root')
 
+    if south:
+        rc = chroot.call(["apt-cache", "show", "virtualenv"])
+        if rc == 0:
+            package = "virtualenv"
+        elif rc == 100:
+            package = "python-virtualenv"
+        else:
+            raise RuntimeError("Unexpected result for apt-cache of %d" % rc)
+
+        chroot.check_call([
+            "apt-get", "install", "--yes", package,
+            ], user='root')
+
+        chroot.check_call(["kg-migrate-south", "--traceback"], user='root')
+
     chroot.check_call(
         ["kg-manage", "syncdb", "--noinput"], user='root')
     chroot.check_call(
-        ["kg-manage", "migrate", "--all", "--traceback"], user='root')
+        ["kg-manage", "migrate", "--traceback"], user='root')
     chroot.check_call(
         ["kg-manage", "migrate_ldap", "--delete", "--traceback"], user='root')
 
@@ -524,7 +539,7 @@ def test_karaage(chroot, tmp_dir, args):
     karaage_file = args.karaage or "site_settings.py"
     install_karaage(chroot)
     config_karaage(
-        chroot, args.database, args.ldap, karaage_file, args.distribution)
+        chroot, args.database, args.ldap, args.south, karaage_file)
     if args.shell:
         print("")
         print("Configured. tmp_dir=%s" % tmp_dir)
@@ -621,6 +636,10 @@ def main():
         "-e", "--error",
         action="store_true",
         help="Run shell on error")
+    parser.add_argument(
+        "--south",
+        action="store_true",
+        help="We need to run kg-migrate-south for South migrations.")
     parser.add_argument(
         "-S", "--sql",
         help="Initialise mysql with this sql file")
