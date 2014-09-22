@@ -314,7 +314,6 @@ def install_mysql(chroot, tmp_dir, settings, sql_file, distribution):
     with tempfile.TemporaryFile() as f:
         filter_file(settings, "mysql/setup.sql", f)
 
-        f.flush()
         f.seek(0)
 
         chroot.check_call(
@@ -347,7 +346,6 @@ def install_postgresql(chroot, tmp_dir, settings, sql_file, distribution):
     with tempfile.TemporaryFile() as f:
         filter_file(settings, "postgresql/setup.sql", f)
 
-        f.flush()
         f.seek(0)
 
         chroot.check_call(
