@@ -475,7 +475,13 @@ def install_karaage(chroot):
         user='root')
 
 
-def config_karaage(chroot, settings, database, ldap, south, karaage_file):
+def config_karaage(chroot, settings, args):
+
+    database = args.database
+    ldap = args.ldap
+    south = args.south
+    karaage_file = args.karaage or "site_settings.py"
+
     with chroot.create_file('/etc/karaage3/settings.py', user='root') as f:
         filter_file(settings, "settings.py", f)
         filter_file(settings, karaage_file, f)
@@ -565,10 +571,10 @@ def test_karaage(chroot, args):
         pass
     else:
         raise RuntimeError("Unknown ldap server '%s'" % args.ldap)
-    karaage_file = args.karaage or "site_settings.py"
+
     install_karaage(chroot)
-    config_karaage(
-        chroot, settings, args.database, args.ldap, args.south, karaage_file)
+    config_karaage(chroot, settings, args)
+
     if args.shell:
         print("")
         print("Configured. tmp_dir=%s" % tmp_dir)
