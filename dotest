@@ -109,6 +109,7 @@ def chdir(directory):
 
 
 def generate_keys():
+    # these are generated locally and copied to schroot.
     if not os.path.isdir("keys"):
         os.mkdir("keys")
 
