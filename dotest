@@ -129,7 +129,7 @@ def generate_keys():
         call(["gpg", "--no-default-keyring", "--batch", "--gen-key", f.name])
 
 
-def setup(chroot, tmp_dir, distribution, config):
+def setup(chroot, tmp_dir, settings, distribution, config):
     repo_dir = os.path.join(tmp_dir, "repo")
 
     chroot.check_call(
@@ -164,8 +164,14 @@ def setup(chroot, tmp_dir, distribution, config):
     chroot.check_call(
         ["apt-get", "upgrade", "--yes"], user='root')
 
-    path = os.path.join(tmp_dir, "debconf.conf")
-    chroot.check_call(["debconf-set-selections", path], user='root')
+    with tempfile.TemporaryFile() as f:
+        filter_file(settings, "debconf.conf", f)
+
+        f.seek(0)
+
+        chroot.check_call(
+            ["debconf-set-selections"],
+            stdin=f, user='root')
 
 
 def make_debian_repo(chroot, tmp_dir, dst_dir):
@@ -539,11 +545,7 @@ def test_karaage(chroot, args):
         'ldap_password': generate_temp_password(),
     }
 
-    path = os.path.join(tmp_dir, "debconf.conf")
-    with chroot.create_file(path, user='root') as f:
-        filter_file(settings, "debconf.conf", f)
-
-    setup(chroot, tmp_dir, args.distribution, config)
+    setup(chroot, tmp_dir, settings, args.distribution, config)
     add_sources(chroot, tmp_dir, args.distribution, args.source, config)
     if args.database == "mysql":
         install_mysql(
