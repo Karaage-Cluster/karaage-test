@@ -6,7 +6,7 @@ SuiteSpotGroup=dirsrv
 ServerPort=389
 Suffix=dc=example,dc=org
 RootDN=cn=Directory Manager
-RootDNPwd=slapdsecret
+RootDNPwd=@ldap_password@
 SlapdConfigForMC=Yes
 UseExistingMC=0
 AddSampleEntries=No

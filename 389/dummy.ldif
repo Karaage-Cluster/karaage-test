@@ -1,0 +1,2 @@
+dn: ou=Accounts,dc=example,dc=org
+objectClass: organizationalUnit

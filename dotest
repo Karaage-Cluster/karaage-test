@@ -24,9 +24,8 @@ import logging.config
 import logging
 import subprocess
 import ConfigParser
+import traceback
 
-from debian import changelog
-from email.Utils import formatdate
 from contextlib import contextmanager
 
 try:
@@ -84,16 +83,19 @@ def call(cmd, **kwargs):
     return subprocess.check_call(cmd, **kwargs)
 
 
-@contextmanager
-def temp_dir():
-    tmp_dir = tempfile.mkdtemp()
-    cur_dir = os.getcwd()
+def generate_temp_password():
+    length = 16
+    chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+    from os import urandom
+    return "".join([chars[ord(c) % len(chars)] for c in urandom(length)])
 
-    try:
-        yield tmp_dir
-    finally:
-        os.chdir(cur_dir)
-        shutil.rmtree(tmp_dir)
+
+def filter_file(settings, src_path, dst):
+    with open(src_path, 'r') as src:
+        for line in src:
+            for key, value in settings.iteritems():
+                line = line.replace("@" + key + "@", value)
+            dst.write(line)
 
 
 @contextmanager
@@ -133,9 +135,6 @@ def setup(chroot, tmp_dir, distribution, config):
     chroot.check_call(
         ["chmod", "1777", "/dev/shm"], user='root')
 
-    if not os.path.isdir(repo_dir):
-        os.mkdir(repo_dir)
-
     make_debian_repo(chroot, tmp_dir, repo_dir)
 
     with chroot.create_file('/etc/apt/sources.list', user='root') as f:
@@ -164,68 +163,25 @@ def setup(chroot, tmp_dir, distribution, config):
         ["apt-get", "update"], user='root')
     chroot.check_call(
         ["apt-get", "upgrade", "--yes"], user='root')
-    chroot.check_call(
-        [
-            "apt-get", "install", "--yes",
-            "build-essential", "git", "devscripts", "equivs",
-            "quilt",
-        ], user='root')
-    chroot.check_call(
-        ["debconf-set-selections", "debconf.conf"], user='root')
 
-
-def build_git_package(chroot, src, tmp_dir, dst_dir, name, branch="master"):
-    dst_path = os.path.join(dst_dir, name)
-    chroot.check_call(["git", "clone", "--branch", branch, src, dst_path])
-
-    changelog_file = os.path.join(dst_path, "debian/changelog")
-    cl = changelog.Changelog(open(changelog_file))
-    version = cl.get_version()
-    version = str(version) + "+git.1"
-
-    cl.new_block(
-        package=cl.package,
-        version=version,
-        distributions="UNRELEASED",
-        urgency="low",
-        author="Karaage Testing <karaage@lists.vpac.org>",
-        date=formatdate(),
-    )
-    cl.add_change('')
-    cl.add_change("  * Rebuild for Karaage testing. Not for production use.")
-    cl.add_change('')
-    cl.write_to_open_file(open(changelog_file, "w"))
-
-    control_file = os.path.join(dst_path, "debian/control")
-
-    depends_path = os.path.join(tmp_dir, "depends")
-    os.mkdir(depends_path)
-    with chdir(depends_path):
-        chroot.check_call(["mk-build-deps", control_file], user="root")
-
-    for name in os.listdir(depends_path):
-        path = os.path.join(depends_path, name)
-        if name.endswith(".deb"):
-            chroot.check_call(["dpkg", "--unpack", path], user="root")
-        chroot.check_call(["apt-get", "-f", "install", "--yes"], user="root")
-
-    shutil.rmtree(depends_path)
-
-    with chdir(dst_path):
-        if os.path.exists("debian/patches/series"):
-            chroot.check_call(
-                ["quilt", "push", "-a"],
-                env={'QUILT_PATCHES': 'debian/patches'})
-        chroot.check_call(["dpkg-checkbuilddeps"])
-        chroot.check_call(["fakeroot", "debian/rules", "binary"])
+    path = os.path.join(tmp_dir, "debconf.conf")
+    chroot.check_call(["debconf-set-selections", path], user='root')
 
 
 def make_debian_repo(chroot, tmp_dir, dst_dir):
-    homedir = os.path.join(tmp_dir, "tmphome")
+    chroot.check_call(["mkdir", "-p", dst_dir], user="root")
+
+    home_dir = os.path.join(tmp_dir, "tmphome")
+    keys_dir = os.path.join(tmp_dir, "keys")
+
+    chroot.check_call(["mkdir", "-p", home_dir], user="root")
+    chroot.check_call(["mkdir", "-p", keys_dir], user="root")
+
     release_file = os.path.join(dst_dir, "Release")
 
     logger.debug("making temp Debian repository at %s" % dst_dir)
-    with tempfile.NamedTemporaryFile() as f:
+    path = os.path.join(tmp_dir, "apt-ftparchive.conf")
+    with chroot.create_file(path, user='root') as f:
         f.write('Dir {\n')
         f.write('   ArchiveDir "%s"\n' % dst_dir)
         f.write('}\n')
@@ -244,35 +200,35 @@ def make_debian_repo(chroot, tmp_dir, dst_dir):
         f.write('    Codename "invalid";\n')
         f.write('    Description "Karaager test Temporary Archive";\n')
         f.write('}\n')
-        f.flush()
-        call(["apt-ftparchive", "generate", f.name])
-        with open(release_file, 'w') as f2:
-            call(
-                ["apt-ftparchive", "-c", f.name, "release", dst_dir],
-                stdout=f2)
 
-    if not os.path.isdir(homedir):
-        os.mkdir(homedir)
+    chroot.check_call(["apt-ftparchive", "generate", path], user="root")
 
-    call([
+    with chroot.create_file(release_file, user='root') as f:
+        chroot.check_call(
+            ["apt-ftparchive", "-c", path, "release", dst_dir],
+            stdout=f, user="root")
+
+    secring_path = os.path.join(keys_dir, "secring.gpg")
+    pubring_path = os.path.join(keys_dir, "pubring.gpg")
+
+    with chroot.create_file(secring_path, user='root') as f:
+        with open("keys/secring.gpg", "r") as fsrc:
+            shutil.copyfileobj(fsrc, f)
+
+    with chroot.create_file(pubring_path, user='root') as f:
+        with open("keys/pubring.gpg") as fsrc:
+            shutil.copyfileobj(fsrc, f)
+
+    chroot.check_call([
         "gpg", "--yes", "--no-default-keyring",
-        "--homedir", homedir,
-        "--secret-keyring", "keys/secring.gpg",
-        "--keyring", "keys/pubring.gpg",
+        "--homedir", home_dir,
+        "--secret-keyring", secring_path,
+        "--keyring", pubring_path,
         "--default-key", "Karaage Tester",
         "-abs", "-o", release_file + ".gpg",
-        release_file])
+        release_file], user="root")
 
     chroot.check_call(["apt-key", "add", "keys/pubring.gpg"], user="root")
-
-
-def copy_to_debian_repo(chroot, src_dir, dst_dir):
-    for name in os.listdir(src_dir):
-        if name.endswith(".deb"):
-            src_file = os.path.join(src_dir, name)
-            dst_file = os.path.join(dst_dir, name)
-            logger.debug("copying %s to %s" % (src_file, dst_file))
-            shutil.copyfile(src_file, dst_file)
 
 
 def split_git_url(url):
@@ -292,22 +248,47 @@ def add_sources(chroot, tmp_dir, distribution, source, config):
     build_dir = os.path.join(tmp_dir, "build")
     repo_dir = os.path.join(tmp_dir, "repo")
 
-    if not os.path.isdir(build_dir):
-        os.mkdir(build_dir)
+    chroot.check_call(["mkdir", "-p", build_dir], user="root")
 
     if source is not None:
+        # create build environment
+        chroot.check_call(
+            [
+                "apt-get", "install", "--yes",
+                "build-essential", "git", "devscripts", "equivs", "quilt",
+                "python-debian", "python3-debian",
+            ], user='root')
+
+        # copy build script
+        path = os.path.join(tmp_dir, "build_pkg")
+        with chroot.create_file(path, user='root') as f:
+            with open("build_pkg") as fsrc:
+                shutil.copyfileobj(fsrc, f)
+        chroot.check_call(["chmod", "700", path], user="root")
+
+        # build every package using build script
         section = "git-%s" % source
         options = config.options(section)
         for name in options:
+            build_pkg_dir = os.path.join(build_dir, name)
+            chroot.check_call(["mkdir", "-p", build_pkg_dir], user="root")
+
             url = config.get(section, name)
             url, branch = split_git_url(url)
-            build_git_package(chroot, url, tmp_dir, build_dir, name, branch)
-            copy_to_debian_repo(chroot, build_dir, repo_dir)
+
+            chroot.check_call([
+                path,
+                "--src", url,
+                "--branch", branch,
+                "--dir", build_pkg_dir,
+                "--dst", repo_dir,
+            ], user="root")
+
             make_debian_repo(chroot, tmp_dir, repo_dir)
             chroot.check_call(["apt-get", "update"], user='root')
 
 
-def install_mysql(chroot, sql_file, distribution):
+def install_mysql(chroot, tmp_dir, settings, sql_file, distribution):
     chroot.check_call(
         ["apt-get", "install", "--yes", "mysql-server",
             "python-mysql.connector", "python3-mysql.connector"],
@@ -328,17 +309,24 @@ def install_mysql(chroot, sql_file, distribution):
 
     chroot.check_call(["service", "mysql", "restart"], user='root')
 
-    with open('mysql/setup.sql', 'r') as f:
+    password = "--password=%s" % settings['database_root_password']
+
+    with tempfile.TemporaryFile() as f:
+        filter_file(settings, "mysql/setup.sql", f)
+
+        f.flush()
+        f.seek(0)
+
         chroot.check_call(
-            ["mysql", "--user=root", "--password=mysqlsecret"], stdin=f)
+            ["mysql", "--user=root", password], stdin=f)
 
     if sql_file is not None:
         with open(sql_file, 'r') as f:
             chroot.check_call(
-                ["mysql", "--user=root", "--password=mysqlsecret"], stdin=f)
+                ["mysql", "--user=root", password], stdin=f)
 
     tables = chroot.check_output(
-        ["mysql", "-B", "-N", "-e", "SHOW TABLES", "-pmysqlsecret", "karaage"],
+        ["mysql", "-B", "-N", "-e", "SHOW TABLES", password, "karaage"],
         user='root')
     for table in tables.split("\n"):
         if table == "":
@@ -346,17 +334,22 @@ def install_mysql(chroot, sql_file, distribution):
         sql = "SET foreign_key_checks = 0; ALTER TABLE %s " \
             "CONVERT TO CHARACTER SET utf8 COLLATE utf8_general_ci" % table
         chroot.check_call(
-            ["mysql", "-B", "-e", sql, "-pmysqlsecret", "karaage"],
+            ["mysql", "-B", "-e", sql, password, "karaage"],
             user='root')
 
 
-def install_postgresql(chroot, sql_file, distribution):
+def install_postgresql(chroot, tmp_dir, settings, sql_file, distribution):
     chroot.check_call(
         ["apt-get", "install", "--yes", "postgresql", "sudo",
             "python-psycopg2", "python3-psycopg2"],
         user='root')
 
-    with open('postgresql/setup.sql', 'r') as f:
+    with tempfile.TemporaryFile() as f:
+        filter_file(settings, "postgresql/setup.sql", f)
+
+        f.flush()
+        f.seek(0)
+
         chroot.check_call(
             ["sudo", "-u", "postgres", "/usr/bin/psql"],
             stdin=f, user="root")
@@ -368,7 +361,7 @@ def install_postgresql(chroot, sql_file, distribution):
                 stdin=f, user="root")
 
 
-def install_openldap(chroot, ldif_file):
+def install_openldap(chroot, tmp_dir, settings, ldif_file):
     chroot.check_call(
         ["apt-get", "install", "--yes", "slapd", "ldap-utils"],
         user='root')
@@ -389,12 +382,14 @@ def install_openldap(chroot, ldif_file):
                 ["ldapadd", "-Y", "EXTERNAL", "-H", "ldapi:///"],
                 stdin=f, user='root')
 
+        password = ['-w', settings['ldap_password']]
+
         # load default ppolicy policy
-        logger.debug("Importing %s" % "openldap/ppolicy2.ldif")
-        with open('openldap/ppolicy2.ldif', 'r') as f:
+        logger.debug("Importing %s" % "openldap/dummy.ldif")
+        with open('openldap/dummy.ldif', 'r') as f:
             chroot.check_call(
                 ["ldapadd", "-x", "-H", "ldapi:///",
-                    "-D", "cn=admin,dc=example,dc=org", "-w", "slapdsecret"],
+                    "-D", "cn=admin,dc=example,dc=org"] + password,
                 stdin=f)
 
     else:
@@ -431,11 +426,31 @@ def install_openldap(chroot, ldif_file):
         chroot.check_call(["service", "slapd", "start"], user='root')
 
 
-def install_389(chroot, ldif_file):
+def install_389(chroot, tmp_dir, settings, ldif_file):
+    path = os.path.join(tmp_dir, "ldap.inf")
+    with chroot.create_file(path, user='root') as f:
+        filter_file(settings, "389/setup.inf", f)
+
     chroot.check_call(
         ["apt-get", "install", "--yes", "389-ds-base", "ldap-utils"],
         user='root')
-    chroot.check_call(["setup-ds", "-s", "-f", "389/setup.inf"], user='root')
+    chroot.check_call(
+        ["setup-ds", "-s", "-f", path],
+        user='root')
+
+    if ldif_file is None:
+        password = ['-w', settings['ldap_password']]
+
+        # load default ppolicy policy
+        logger.debug("Importing %s" % "389/dummy.ldif")
+        with open('389/dummy.ldif', 'r') as f:
+            chroot.check_call(
+                ["ldapadd", "-x", "-H", "ldap://localhost/",
+                    "-D", "cn=Directory Manager"] + password,
+                stdin=f)
+
+    else:
+        raise RuntimeError("Import to 389 not implemented yet")
 
 
 def install_karaage(chroot):
@@ -455,17 +470,13 @@ def install_karaage(chroot):
         user='root')
 
 
-def config_karaage(chroot, database, ldap, south, karaage_file):
+def config_karaage(chroot, settings, database, ldap, south, karaage_file):
     with chroot.create_file('/etc/karaage3/settings.py', user='root') as f:
-        with open("settings.py", "r") as src:
-            shutil.copyfileobj(src, f)
-        with open(karaage_file, "r") as src:
-            shutil.copyfileobj(src, f)
-        with open(os.path.join(database, "settings.py"), "r") as src:
-            shutil.copyfileobj(src, f)
+        filter_file(settings, "settings.py", f)
+        filter_file(settings, karaage_file, f)
+        filter_file(settings, os.path.join(database, "settings.py"), f)
         if ldap != "none":
-            with open(os.path.join(ldap, "settings.py"), "r") as src:
-                shutil.copyfileobj(src, f)
+            filter_file(settings, os.path.join(ldap, "settings.py"), f)
 
     chroot.check_call(["kg_set_secret_key"], user='root')
     chroot.check_call(
@@ -515,23 +526,40 @@ def remove_karaage(chroot):
         user='root')
 
 
-def test_karaage(chroot, tmp_dir, args):
+def test_karaage(chroot, args):
     config = ConfigParser.ConfigParser()
     config.read(args.config)
+
+    # create temp directory inside schroot.
+    tmp_dir = "/var/lib/karaage/tmp"
+    chroot.check_call(["mkdir", "-p", tmp_dir], user="root")
+    chroot.check_call(["chmod", "700", tmp_dir], user="root")
+
+    settings = {
+        'database_root_password': generate_temp_password(),
+        'database_password': generate_temp_password(),
+        'ldap_password': generate_temp_password(),
+    }
+
+    path = os.path.join(tmp_dir, "debconf.conf")
+    with chroot.create_file(path, user='root') as f:
+        filter_file(settings, "debconf.conf", f)
 
     setup(chroot, tmp_dir, args.distribution, config)
     add_sources(chroot, tmp_dir, args.distribution, args.source, config)
     if args.database == "mysql":
-        install_mysql(chroot, args.sql, args.distribution)
+        install_mysql(
+            chroot, tmp_dir, settings, args.sql, args.distribution)
     elif args.database == "postgresql":
-        install_postgresql(chroot, args.sql, args.distribution)
+        install_postgresql(
+            chroot, tmp_dir, settings, args.sql, args.distribution)
     else:
         raise RuntimeError("Unknown database server '%s'" % args.database)
 
     if args.ldap == 'openldap':
-        install_openldap(chroot, args.ldif)
+        install_openldap(chroot, tmp_dir, settings, args.ldif)
     elif args.ldap == '389':
-        install_389(chroot, args.ldif)
+        install_389(chroot, tmp_dir, settings, args.ldif)
     elif args.ldap == 'none':
         pass
     else:
@@ -539,7 +567,7 @@ def test_karaage(chroot, tmp_dir, args):
     karaage_file = args.karaage or "site_settings.py"
     install_karaage(chroot)
     config_karaage(
-        chroot, args.database, args.ldap, args.south, karaage_file)
+        chroot, settings, args.database, args.ldap, args.south, karaage_file)
     if args.shell:
         print("")
         print("Configured. tmp_dir=%s" % tmp_dir)
@@ -660,20 +688,20 @@ def main():
 
     generate_keys()
 
-    with temp_dir() as tmp_dir:
-
-        with root(args.localhost, chroot_name) as chroot:
-            try:
-                test_karaage(chroot, tmp_dir, args)
-            except Exception, e:
-                if args.error:
-                    print("")
-                    print("Exception occured. tmp_dir=%s" % tmp_dir)
-                    print(e)
-                    print("Entering shell, please exit to finish.")
-                    chroot.check_call(
-                        ["bash"], user='root', env=interactive_env)
-                raise
+    with root(args.localhost, chroot_name) as chroot:
+        try:
+            test_karaage(chroot, args)
+        except Exception:
+            if args.error:
+                print("")
+                print("Exception occured.")
+                print("")
+                traceback.print_exc()
+                print("")
+                print("Entering shell, please exit to finish.")
+                chroot.check_call(
+                    ["bash"], user='root', env=interactive_env)
+            exit(1)
 
 
 if __name__ == "__main__":
