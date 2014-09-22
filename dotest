@@ -536,7 +536,7 @@ def test_karaage(chroot, args):
     config.read(args.config)
 
     # create temp directory inside schroot.
-    tmp_dir = "/var/lib/karaage/tmp"
+    tmp_dir = "/var/lib/karaage-test/"
     chroot.check_call(["mkdir", "-p", tmp_dir], user="root")
     chroot.check_call(["chmod", "700", tmp_dir], user="root")
 
