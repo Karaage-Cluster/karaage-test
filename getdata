@@ -104,6 +104,18 @@ def main():
         ], stdout=f)
     os.rename(sql_file_tmp, sql_file)
 
+    sql_file = os.path.join(directory, "onlyusage.sql")
+    sql_file_tmp = sql_file + ".tmp"
+    with open(sql_file_tmp, "w") as f:
+        call([
+            "ssh", "root@%s" % args.sql_server, "mysqldump",
+            "karaage", "--quick", "--no-create-info",
+            "--compatible=postgresql", "--complete",
+            "cpu_job",
+            "cpu_job_software",
+        ], stdout=f)
+    os.rename(sql_file_tmp, sql_file)
+
     sql_file = os.path.join(directory, "complete.sql")
     sql_file_tmp = sql_file + ".tmp"
     with open(sql_file_tmp, "w") as f:
