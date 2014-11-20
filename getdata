@@ -91,15 +91,16 @@ def main():
     with open(sql_file_tmp, "w") as f:
         call([
             "ssh", "root@%s" % args.sql_server, "mysqldump",
+            "--quick",
             "--database", "karaage",
-            "--ignore-table", "karaage.cpu_job_software",
             "--ignore-table", "karaage.cpu_job",
+            "--ignore-table", "karaage.cpu_job_software",
         ], stdout=f)
         call([
             "ssh", "root@%s" % args.sql_server, "mysqldump",
             "karaage", "--no-data",
-            "cpu_job_software",
             "cpu_job",
+            "cpu_job_software",
         ], stdout=f)
     os.rename(sql_file_tmp, sql_file)
 
@@ -108,6 +109,7 @@ def main():
     with open(sql_file_tmp, "w") as f:
         call([
             "ssh", "root@%s" % args.sql_server, "mysqldump",
+            "--quick",
             "--database", "karaage",
         ], stdout=f)
     os.rename(sql_file_tmp, sql_file)
