@@ -519,12 +519,14 @@ def config_karaage(chroot, settings, args):
         ["service", "apache2", "reload"], user='root')
     chroot.check_call(
         ["service", "karaage3-celery", "restart"], user='root')
-#    chroot.check_call(
-#        ["kg-manage", "kgcreatesuperuser",
-#            "--username=kgadmin", "--email=kgadmin@example.org",
-#            "--password=1234", "--short_name=karaage", "--full_name=admin",
-#            "--institute=test"],
-#        user='root')
+
+    if args.create_superuser:
+        chroot.check_call(
+            ["kg-manage", "kgcreatesuperuser",
+                "--username=kgadmin", "--email=kgadmin@example.org",
+                "--password=1234", "--short_name=karaage", "--full_name=admin",
+                "--institute=test"],
+            user='root')
 
 
 def remove_karaage(chroot):
@@ -675,6 +677,10 @@ def main():
         "--south",
         action="store_true",
         help="We need to run kg-migrate-south for South migrations.")
+    parser.add_argument(
+        "--create_superuser",
+        action="store_true",
+        help="We kgcreatesuperuser to create a super user.")
     parser.add_argument(
         "-S", "--sql",
         help="Initialise mysql with this sql file")
