@@ -634,7 +634,7 @@ def main():
         description='Test karaage Debian packages.')
     parser.add_argument(
         "-d", "--distribution",
-        choices=['squeeze', 'wheezy', 'sid'], default="wheezy",
+        choices=['squeeze', 'wheezy', 'jessie', 'sid'], default="wheezy",
         help="Which distribution?")
     parser.add_argument(
         "-a", "--architecture",
