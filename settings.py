@@ -262,16 +262,18 @@ ACCOUNTS_ORG_NAME = 'Example'
 # default: PLUGINS = []
 #
 # PLUGINS = [
-#     'kgapplications.plugin',
-#     'kgsoftware.plugin',
-#     'kgusage.plugin',
+#     'karaage.plugins.kgapplications.plugin',
+#     'karaage.plugins.kgsoftware.plugin',
+#     'karaage.plugins.kgsoftware.applications.plugin',
+#     'karaage.plugins.kgusage.plugin',
 # ]
 PLUGINS = [
-    'kgusage.plugin',
+    'karaage.plugins.kgapplications.plugin',
+    'karaage.plugins.kgsoftware.plugin',
+    'karaage.plugins.kgsoftware.applications.plugin',
+    'karaage.plugins.kgusage.plugin',
 ]
 
-# Django Pipeline configuration
-PIPELINE_CSS_COMPRESSOR = 'pipeline.compressors.csstidy.CSSTidyCompressor'
-PIPELINE_JS_COMPRESSOR = 'pipeline.compressors.slimit.SlimItCompressor'
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 # Test settings

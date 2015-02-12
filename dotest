@@ -506,7 +506,8 @@ def config_karaage(chroot, settings, args):
             "apt-get", "install", "--yes", package,
             ], user='root')
 
-        chroot.check_call(["kg-migrate-south", "--traceback"], user='root')
+        chroot.check_call(
+            ["kg-migrate-south", "--noinput", "--traceback"], user='root')
 
     chroot.check_call(
         ["kg-manage", "syncdb", "--noinput"], user='root')
