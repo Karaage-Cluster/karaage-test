@@ -462,7 +462,6 @@ def install_karaage(chroot):
     chroot.check_call(
         [
             "apt-get", "install", "--yes",
-            "libjs-jquery-ui", "csstidy", "slimit",
             "python-cracklib",
             "python-kgusage",
             "python3-cracklib",
