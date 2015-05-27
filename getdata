@@ -92,7 +92,7 @@ def main():
         call([
             "ssh", "root@%s" % args.sql_server, "mysqldump",
             "--quick",
-            "--database", "karaage",
+            "--databases", "karaage",
             "--ignore-table", "karaage.cpu_job",
             "--ignore-table", "karaage.cpu_job_software",
         ], stdout=f)
