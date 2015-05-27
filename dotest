@@ -314,25 +314,26 @@ def install_mysql(chroot, tmp_dir, settings, sql_file, distribution):
         f.write("[client]\n")
         f.write("default-character-set = utf8\n")
 
-    chroot.check_call(["service", "mysql", "restart"], user='root')
+    with chroot.create_file('/root/.my.cnf', user='root') as f:
+        f.write("[client]\n")
+        f.write("user = root\n")
+        f.write("password = %s\n" % settings['database_root_password'])
 
-    password = "--password=%s" % settings['database_root_password']
+    chroot.check_call(["service", "mysql", "restart"], user='root')
 
     with tempfile.TemporaryFile() as f:
         filter_file(settings, "mysql/setup.sql", f)
 
         f.seek(0)
 
-        chroot.check_call(
-            ["mysql", "--user=root", password], stdin=f)
+        chroot.check_call(["mysql"], user='root', stdin=f)
 
     if sql_file is not None:
         with open(sql_file, 'r') as f:
-            chroot.check_call(
-                ["mysql", "--user=root", password], stdin=f)
+            chroot.check_call(["mysql"], user='root', stdin=f)
 
     tables = chroot.check_output(
-        ["mysql", "-B", "-N", "-e", "SHOW TABLES", password, "karaage"],
+        ["mysql", "-B", "-N", "-e", "SHOW TABLES", "karaage"],
         user='root')
     for table in tables.split("\n"):
         if table == "":
@@ -340,7 +341,7 @@ def install_mysql(chroot, tmp_dir, settings, sql_file, distribution):
         sql = "SET foreign_key_checks = 0; ALTER TABLE %s " \
             "CONVERT TO CHARACTER SET utf8 COLLATE utf8_general_ci" % table
         chroot.check_call(
-            ["mysql", "-B", "-e", sql, password, "karaage"],
+            ["mysql", "-B", "-e", sql, "karaage"],
             user='root')
 
 
