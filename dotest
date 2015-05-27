@@ -415,7 +415,6 @@ def install_openldap(chroot, tmp_dir, settings, ldif_file):
         # kill existing data
         chroot.check_call(["rm", "-rf", "/var/lib/ldap/"], user='root')
         chroot.check_call(["mkdir", "/var/lib/ldap/"], user='root')
-        logger.debug("Importing %s" % "/dev/null")
 
         # load data
         logger.debug("Importing %s" % ldif_file)
