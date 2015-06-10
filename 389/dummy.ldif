@@ -1,8 +1,2 @@
-dn: ou=People,dc=example,dc=org
-objectClass: organizationalUnit
-
 dn: ou=Accounts,dc=example,dc=org
-objectClass: organizationalUnit
-
-dn: ou=Groups,dc=example,dc=org
 objectClass: organizationalUnit
