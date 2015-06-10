@@ -24,6 +24,7 @@ MACHINE_CATEGORY_DATASTORES = {
             'LOCKED_SHELL': "/usr/local/sbin/locked",
             'LDAP_ACCOUNT_BASE': _ldap_account_base,
             'LDAP_GROUP_BASE': _ldap_account_group_base,
+            'LOCKED_ROLE': 'cn=nsmanageddisabledrole,%s' % _ldap_base,
         },
     ],
     'dummy': [
@@ -40,6 +41,7 @@ if _ldap_person_base:
             'GROUP': 'karaage.datastores.ldap_schemas.ds389_person_group',
             'LDAP_PERSON_BASE': _ldap_person_base,
             'LDAP_GROUP_BASE': _ldap_person_group_base,
+            'LOCKED_ROLE': 'cn=nsmanageddisabledrole,%s' % _ldap_base,
         },
     ]
 
