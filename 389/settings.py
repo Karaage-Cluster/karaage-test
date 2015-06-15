@@ -57,4 +57,5 @@ KG27_DATASTORE = {
     'LOCKED_SHELL': "/usr/local/sbin/locked",
     'LDAP_ACCOUNT_BASE': _ldap_old_account_base,
     'LDAP_GROUP_BASE': _ldap_old_group_base,
+    'LOCKED_ROLE': 'cn=nsmanageddisabledrole,%s' % _ldap_base,
 }
