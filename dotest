@@ -661,18 +661,18 @@ def main():
     parser.add_argument(
         "-c", "--config",
         default="dotest.ini",
-        help="Where to get packages from")
+        help="What config file to use [dotest.ini].")
     parser.add_argument(
         "-s", "--source",
-        help="Where to get packages from")
+        help="Where to get packages from.")
     parser.add_argument(
         "-r", "--shell",
         action="store_true",
-        help="Run shell on configured")
+        help="Run shell on configured.")
     parser.add_argument(
         "-e", "--error",
         action="store_true",
-        help="Run shell on error")
+        help="Run shell on error.")
     parser.add_argument(
         "--south",
         action="store_true",
@@ -683,17 +683,17 @@ def main():
         help="We kgcreatesuperuser to create a super user.")
     parser.add_argument(
         "-S", "--sql",
-        help="Initialise mysql with this sql file")
+        help="Initialise mysql with this sql file.")
     parser.add_argument(
         "-L", "--ldif",
-        help="Initialise openldap with this file")
+        help="Initialise openldap with this file.")
     parser.add_argument(
         "-k", "--karaage",
-        help="Karaage config file to use")
+        help="Karaage config file to use.")
     parser.add_argument(
         "--keep",
         action="store_true",
-        help="Don't uninstall everything on completion")
+        help="Don't uninstall everything on completion.")
     args = parser.parse_args()
 
     chroot_name = "%s-%s" % (
