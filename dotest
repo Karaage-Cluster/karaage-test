@@ -145,7 +145,7 @@ def setup(chroot, tmp_dir, settings, distribution, config):
             "deb %s %s main\n"
             % (config.get("debian", "main"), distribution))
         f.write(
-            "deb http://code.vpac.org/debian/ %s main\n"
+            "deb http://localhost:9999/linuxpenguins/ %s main\n"
             % distribution)
 
     with chroot.create_file('/etc/apt/preferences', user='root') as f:
@@ -159,7 +159,7 @@ def setup(chroot, tmp_dir, settings, distribution, config):
         f.write("\n")
 
     chroot.check_call(
-        ["apt-key", "add", "vpac/vpac-debian-key.gpg"], user='root')
+        ["apt-key", "add", "linuxpenguins/linuxpenguins.gpg.key"], user='root')
     chroot.check_call(
         ["apt-get", "update"], user='root')
     chroot.check_call(
