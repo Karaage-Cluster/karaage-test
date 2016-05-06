@@ -70,6 +70,7 @@ def setup_logging():
 interactive_env = {
     'PATH': '/usr/sbin:/usr/bin:/sbin:/bin',
     'DEBCONF_DEBUG': 'developer',
+    #    'DEB_BUILD_OPTIONS': 'nocheck',
 }
 
 env = dict(interactive_env)
