@@ -1,0 +1,134 @@
+#!/usr/bin/env python
+# Copyright 2013 VPAC
+#
+# This file is part of Karaage.
+#
+# Karaage is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# Karaage is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Karaage  If not, see <http://www.gnu.org/licenses/>.
+import tempfile
+import shutil
+import os
+import argparse
+import subprocess
+
+from debian import changelog
+from email.Utils import formatdate
+from contextlib import contextmanager
+
+
+@contextmanager
+def chdir(directory):
+    old_dir = os.getcwd()
+    try:
+        os.chdir(directory)
+        yield old_dir
+    finally:
+        os.chdir(old_dir)
+
+
+@contextmanager
+def temp_dir():
+    tmp_dir = tempfile.mkdtemp()
+
+    try:
+        yield tmp_dir
+    finally:
+        shutil.rmtree(tmp_dir)
+
+
+def copy_to_destination(src_dir, dst_dir):
+    for name in os.listdir(src_dir):
+        if name.endswith(".deb"):
+            src_file = os.path.join(src_dir, name)
+            dst_file = os.path.join(dst_dir, name)
+            print("copying %s to %s" % (src_file, dst_file))
+            shutil.copyfile(src_file, dst_file)
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description='Build karaage Debian packages.')
+    parser.add_argument(
+        "--src", help="git source?")
+    parser.add_argument(
+        "--dir", help="build directory?")
+    parser.add_argument(
+        "--dst", help="destination directory?")
+    parser.add_argument(
+        "--branch", help="git branch?")
+
+    args = parser.parse_args()
+
+    build_path = args.dir
+    src_path = os.path.join(build_path, "source")
+
+    # get the source
+    subprocess.check_call(
+        ["git", "clone", "--branch", args.branch, args.src, src_path])
+
+    with temp_dir() as debian_path:
+        debian_src = args.src + "-debian"
+        subprocess.check_call(
+            ["git", "clone", "--branch", "master", debian_src, debian_path])
+        shutil.copytree(
+            os.path.join(debian_path, "debian"),
+            os.path.join(src_path, "debian"),
+            symlinks=True
+        )
+
+    # update the changelog
+    changelog_file = os.path.join(src_path, "debian/changelog")
+    cl = changelog.Changelog(open(changelog_file))
+    version = cl.get_version()
+    version = str(version) + "+git.1"
+
+    cl.new_block(
+        package=cl.package,
+        version=version,
+        distributions="UNRELEASED",
+        urgency="low",
+        author="Karaage Testing <karaage@lists.vpac.org>",
+        date=formatdate(),
+    )
+    cl.add_change('')
+    cl.add_change("  * Rebuild for Karaage testing. Not for production use.")
+    cl.add_change('')
+    cl.write_to_open_file(open(changelog_file, "w"))
+
+    # install build depends
+    control_file = os.path.join(src_path, "debian/control")
+
+    with temp_dir() as depends_path:
+        with chdir(depends_path):
+            subprocess.check_call(["mk-build-deps", control_file])
+
+        for name in os.listdir(depends_path):
+            path = os.path.join(depends_path, name)
+            if name.endswith(".deb"):
+                subprocess.check_call(["dpkg", "--unpack", path])
+            subprocess.check_call(["apt-get", "-f", "install", "--yes"])
+
+    # build it
+    with chdir(src_path):
+        if os.path.exists("debian/patches/series"):
+            subprocess.check_call(
+                ["quilt", "push", "-a"],
+                env={'QUILT_PATCHES': 'debian/patches'})
+        subprocess.check_call(["dpkg-checkbuilddeps"])
+        subprocess.check_call(["fakeroot", "debian/rules", "binary"])
+
+    # copy results to dst directory
+    copy_to_destination(build_path, args.dst)
+
+if __name__ == "__main__":
+    main()
