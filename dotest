@@ -178,6 +178,11 @@ def setup(chroot, tmp_dir, settings, distribution, config):
 
 
 def make_debian_repo(chroot, tmp_dir, dst_dir):
+    chroot.check_call(
+        [
+            "apt-get", "install", "--yes", "apt-utils",
+        ], user='root')
+
     chroot.check_call(["mkdir", "-p", dst_dir], user="root")
 
     home_dir = os.path.join(tmp_dir, "tmphome")
