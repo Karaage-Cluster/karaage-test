@@ -163,7 +163,8 @@ def setup(chroot, tmp_dir, settings, distribution, config):
     chroot.check_call(
         ["apt-get", "update"], user='root')
     chroot.check_call(
-        ["apt-get", "upgrade", "--yes"], user='root')
+        ["apt-get", "upgrade", "--yes", "-oDpkg::Options::=--force-confold"],
+        user='root')
 
     with tempfile.TemporaryFile() as f:
         filter_file(settings, "debconf.conf", f)
@@ -262,6 +263,7 @@ def add_sources(chroot, tmp_dir, distribution, source, config):
         chroot.check_call(
             [
                 "apt-get", "install", "--yes",
+                "-oDpkg::Options::=--force-confold",
                 "build-essential", "git", "devscripts", "equivs", "quilt",
                 "python-debian", "python3-debian",
             ], user='root')
@@ -298,7 +300,7 @@ def add_sources(chroot, tmp_dir, distribution, source, config):
 def install_mysql(chroot, tmp_dir, settings, sql_file, distribution):
     chroot.check_call(
         ["apt-get", "install", "--yes", "mysql-server",
-            "python-mysql.connector", "python3-mysql.connector"],
+            "python-mysqldb", "python3-mysqldb"],
         user='root')
 
     with chroot.create_file('/etc/mysql/conf.d/karaage.cnf', user='root') as f:
@@ -371,6 +373,9 @@ def install_openldap(chroot, tmp_dir, settings, ldif_file):
     chroot.check_call(
         ["apt-get", "install", "--yes", "slapd", "ldap-utils"],
         user='root')
+
+    # make sure ldap server is running
+    chroot.check_call(["service", "slapd", "start"], user='root')
 
     # load ppolicy schema
     logger.debug("Importing %s" % "openldap/ppolicy.ldif")
@@ -516,7 +521,7 @@ def config_karaage(chroot, settings, args):
         ["kg-manage", "migrate_ldap", "--delete", "--traceback"], user='root')
 
     chroot.check_call(
-        ["service", "apache2", "reload"], user='root')
+        ["service", "apache2", "start"], user='root')
     chroot.check_call(
         ["service", "karaage3-celery", "restart"], user='root')
 
@@ -696,7 +701,7 @@ def main():
         help="Don't uninstall everything on completion.")
     args = parser.parse_args()
 
-    chroot_name = "%s-%s" % (
+    chroot_name = "%s-%s-default" % (
         args.chroot or args.distribution, args.architecture)
 
     generate_keys()

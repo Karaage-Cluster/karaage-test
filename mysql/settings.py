@@ -1,6 +1,6 @@
 DATABASES = {
     'default': {
-        'ENGINE': 'mysql.connector.django',
+        'ENGINE': 'django.db.backends.mysql',
         'NAME': 'karaage',
         'USER': 'karaage',
         'PASSWORD': '@database_password@',
