@@ -437,6 +437,15 @@ def install_openldap(chroot, tmp_dir, settings, ldif_file):
 
 
 def install_389(chroot, tmp_dir, settings, ldif_file):
+    hostname = chroot.check_output(['hostname', '-f'])
+    hostname = hostname.rstrip()
+
+    with chroot.create_file("/etc/hosts", user='root') as f:
+        f.write("127.0.0.1 prune.in.vpac.org prune\n")
+        # f.write("127.0.0.1 Debian-jessie-amd64-netboot.in.vpac.org\n")
+        # f.write("127.0.0.1 %s\n" % (hostname))
+        # f.write("127.0.0.1 Debian-jessie-amd64-netboot\n")
+
     path = os.path.join(tmp_dir, "ldap.inf")
     with chroot.create_file(path, user='root') as f:
         filter_file(settings, "389/setup.inf", f)
