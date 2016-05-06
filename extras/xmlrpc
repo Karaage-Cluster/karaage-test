@@ -1,0 +1,52 @@
+#!/usr/bin/python
+import xmlrpclib
+
+#url = 'http://localhost/kgadmin/xmlrpc/'
+url = 'http://localhost:8000/xmlrpc/'
+username = "cwest"
+auth_name = "trifid"
+password = "sPdKu459Zb"
+server = xmlrpclib.Server(url)
+
+def test(username, project_id, machine_name):
+
+	print "project_under_quota"
+	print server.project_under_quota(project_id)
+	print server.project_under_quota(project_id, machine_name)
+	print
+
+	print "get_disk_quota"
+	print server.get_disk_quota(username)
+	print server.get_disk_quota(username, machine_name)
+	print
+
+	print "showquota"
+	print server.showquota(username)
+	print server.showquota(username, machine_name)
+	print
+
+	print "get_projects"
+	print server.get_projects(auth_name, password)
+	print
+
+	print "get_project"
+	print server.get_project(username, project_id)
+	print
+
+	print "get_project_members"
+	print server.get_project_members(auth_name, password, project_id)
+	print
+
+	#print "change_default_project"
+	#print server.change_default_project(auth_name, password, project_id)
+	#print
+
+	#print "get_users_project"
+	#print server.get_users_projects(auth_name, password)
+	#print
+
+test("brian", "VPAC_Sys", "trifid")
+test("brian", "VPAC_Sys", "tango")
+
+test("cwest", "VPAC_Sys", "trifid")
+test("cwest", "VPAC_Sys", "tango")

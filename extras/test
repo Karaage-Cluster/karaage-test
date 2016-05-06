@@ -1,0 +1,11 @@
+#!/usr/bin/env python
+import schroot
+
+with schroot.schroot("sid") as chroot:
+    print chroot.location
+    o,e,r = chroot.run(['id'], user='root', return_codes=0)
+    print o,e
+    chroot.check_call(['id'], user='root')
+    print chroot.check_output(['id'], user='root')
+    with chroot.create_file("/etc/meow.txt", user='root') as f:
+        f.write("hello\n")

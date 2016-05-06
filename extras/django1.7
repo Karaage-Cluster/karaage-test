@@ -1,0 +1,6 @@
+#!/bin/sh -ex
+
+dpkg --unpack /home/brian/tree/debian/wip/python-django/f/wheezy/python*.deb
+dpkg --configure --pending
+service apache2 restart
+service karaage3-celery restart
